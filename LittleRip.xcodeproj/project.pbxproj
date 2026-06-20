@@ -1,0 +1,472 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1566185856F4259DD3FAA33A /* LittleRipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898D024CFCCC0375758B93FA /* LittleRipApp.swift */; };
+		4C07CB33A7D9F05BA132EDC4 /* UnlockFrontDoorIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */; };
+		5C3DE01632B431F06C1D88A9 /* LittleRipWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE14C924A0FDD00983D3DC3A /* LittleRipWidget.swift */; };
+		64EF0A1C1D37E5A54BA4C614 /* SmartRentClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B9103F03D659C17B6367AE3 /* SmartRentClient.swift */; };
+		77C64C39FBFCBC99F361167C /* UnlockFrontDoorIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */; };
+		7B6858A25DB825955410FDBB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CC7E630EF66A1853978FC60E /* Assets.xcassets */; };
+		8AD7A2B927A4FBF158CE990B /* SmartRentClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B9103F03D659C17B6367AE3 /* SmartRentClient.swift */; };
+		9DB9ACF5411EE363A6F5F8C8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11672CBAA2986D6C905EFA6 /* ContentView.swift */; };
+		A5DFF4EAAF41CF2C727E8251 /* LittleRipWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 390AF2B74FCACD9736686BB9 /* LittleRipWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		ADF4F5DA40692E36AEA7BE28 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 40C683381E91541F094210C6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F6BD1AA6F6AB81BB089C9190;
+			remoteInfo = LittleRipWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		0BA5F3BF76E401545723C338 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A5DFF4EAAF41CF2C727E8251 /* LittleRipWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0B9103F03D659C17B6367AE3 /* SmartRentClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartRentClient.swift; sourceTree = "<group>"; };
+		35D1EA24E1F4044CCF87C6CC /* LittleRipWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LittleRipWidgetExtension.entitlements; sourceTree = "<group>"; };
+		390AF2B74FCACD9736686BB9 /* LittleRipWidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = LittleRipWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3E895BAFC8CDCF8E284FB4ED /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		6EA54832BEDA571B6269648A /* LittleRip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LittleRip.entitlements; sourceTree = "<group>"; };
+		8676649E91364A8825D554A3 /* LittleRip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LittleRip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		898D024CFCCC0375758B93FA /* LittleRipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LittleRipApp.swift; sourceTree = "<group>"; };
+		ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockFrontDoorIntent.swift; sourceTree = "<group>"; };
+		CC7E630EF66A1853978FC60E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DE14C924A0FDD00983D3DC3A /* LittleRipWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LittleRipWidget.swift; sourceTree = "<group>"; };
+		E11672CBAA2986D6C905EFA6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		19091E80A479AC1CFB217225 = {
+			isa = PBXGroup;
+			children = (
+				58A11190FA622056649C1B92 /* LittleRip */,
+				219CE7CAAE10DB60A0A3E6E9 /* LittleRipWidgetExtension */,
+				A24E5162BF71563351B24145 /* Shared */,
+				DF2FD4C9EEF35322251E6FF5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		219CE7CAAE10DB60A0A3E6E9 /* LittleRipWidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				3E895BAFC8CDCF8E284FB4ED /* Info.plist */,
+				DE14C924A0FDD00983D3DC3A /* LittleRipWidget.swift */,
+				35D1EA24E1F4044CCF87C6CC /* LittleRipWidgetExtension.entitlements */,
+			);
+			path = LittleRipWidgetExtension;
+			sourceTree = "<group>";
+		};
+		58A11190FA622056649C1B92 /* LittleRip */ = {
+			isa = PBXGroup;
+			children = (
+				CC7E630EF66A1853978FC60E /* Assets.xcassets */,
+				E11672CBAA2986D6C905EFA6 /* ContentView.swift */,
+				6EA54832BEDA571B6269648A /* LittleRip.entitlements */,
+				898D024CFCCC0375758B93FA /* LittleRipApp.swift */,
+			);
+			path = LittleRip;
+			sourceTree = "<group>";
+		};
+		A24E5162BF71563351B24145 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				0B9103F03D659C17B6367AE3 /* SmartRentClient.swift */,
+				ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		DF2FD4C9EEF35322251E6FF5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8676649E91364A8825D554A3 /* LittleRip.app */,
+				390AF2B74FCACD9736686BB9 /* LittleRipWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1038F226D61A1778974AA9A8 /* LittleRip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC621FB232ED6A68F104CF33 /* Build configuration list for PBXNativeTarget "LittleRip" */;
+			buildPhases = (
+				502643DCFE43739A41EAB8B6 /* Sources */,
+				6967C0BBEC1121220054451A /* Resources */,
+				0BA5F3BF76E401545723C338 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B1BDAB965D072352F42856FC /* PBXTargetDependency */,
+			);
+			name = LittleRip;
+			packageProductDependencies = (
+			);
+			productName = LittleRip;
+			productReference = 8676649E91364A8825D554A3 /* LittleRip.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F6BD1AA6F6AB81BB089C9190 /* LittleRipWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27CF408C7172A9BC8DF23787 /* Build configuration list for PBXNativeTarget "LittleRipWidgetExtension" */;
+			buildPhases = (
+				183E9181396ACF25372D632F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LittleRipWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = LittleRipWidgetExtension;
+			productReference = 390AF2B74FCACD9736686BB9 /* LittleRipWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		40C683381E91541F094210C6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					1038F226D61A1778974AA9A8 = {
+						DevelopmentTeam = 72CK386HNT;
+						ProvisioningStyle = Automatic;
+					};
+					F6BD1AA6F6AB81BB089C9190 = {
+						DevelopmentTeam = 72CK386HNT;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 6B13CB1917B50C9154B6E3CF /* Build configuration list for PBXProject "LittleRip" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 19091E80A479AC1CFB217225;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = DF2FD4C9EEF35322251E6FF5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1038F226D61A1778974AA9A8 /* LittleRip */,
+				F6BD1AA6F6AB81BB089C9190 /* LittleRipWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6967C0BBEC1121220054451A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7B6858A25DB825955410FDBB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		183E9181396ACF25372D632F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C3DE01632B431F06C1D88A9 /* LittleRipWidget.swift in Sources */,
+				8AD7A2B927A4FBF158CE990B /* SmartRentClient.swift in Sources */,
+				77C64C39FBFCBC99F361167C /* UnlockFrontDoorIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		502643DCFE43739A41EAB8B6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9DB9ACF5411EE363A6F5F8C8 /* ContentView.swift in Sources */,
+				1566185856F4259DD3FAA33A /* LittleRipApp.swift in Sources */,
+				64EF0A1C1D37E5A54BA4C614 /* SmartRentClient.swift in Sources */,
+				4C07CB33A7D9F05BA132EDC4 /* UnlockFrontDoorIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B1BDAB965D072352F42856FC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F6BD1AA6F6AB81BB089C9190 /* LittleRipWidgetExtension */;
+			targetProxy = ADF4F5DA40692E36AEA7BE28 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0C2D910DB5CE79BC46E99A6E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LittleRip/LittleRip.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.maxautomize.LittleRip;
+				PRODUCT_NAME = LittleRip;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		18F6F1E4FE55DFC68BE8AEB1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 72CK386HNT;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9F050B91086494A9C2B5A186 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LittleRip/LittleRip.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.maxautomize.LittleRip;
+				PRODUCT_NAME = LittleRip;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A0CA09773A8AF0F1480545C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = LittleRipWidgetExtension/LittleRipWidgetExtension.entitlements;
+				INFOPLIST_FILE = LittleRipWidgetExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.maxautomize.LittleRip.LittleRipWidgetExtension;
+				PRODUCT_NAME = LittleRipWidgetExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C12C5756B1CD8DA8B09A0FBD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = LittleRipWidgetExtension/LittleRipWidgetExtension.entitlements;
+				INFOPLIST_FILE = LittleRipWidgetExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.maxautomize.LittleRip.LittleRipWidgetExtension;
+				PRODUCT_NAME = LittleRipWidgetExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C300675B7CD8AFE1CF798252 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 72CK386HNT;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		27CF408C7172A9BC8DF23787 /* Build configuration list for PBXNativeTarget "LittleRipWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0CA09773A8AF0F1480545C3 /* Debug */,
+				C12C5756B1CD8DA8B09A0FBD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6B13CB1917B50C9154B6E3CF /* Build configuration list for PBXProject "LittleRip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18F6F1E4FE55DFC68BE8AEB1 /* Debug */,
+				C300675B7CD8AFE1CF798252 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CC621FB232ED6A68F104CF33 /* Build configuration list for PBXNativeTarget "LittleRip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F050B91086494A9C2B5A186 /* Debug */,
+				0C2D910DB5CE79BC46E99A6E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 40C683381E91541F094210C6 /* Project object */;
+}

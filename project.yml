@@ -1,0 +1,55 @@
+name: LittleRip
+options:
+  minimumXcodeGenVersion: 2.42.0
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: 72CK386HNT
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: 5.0
+    IPHONEOS_DEPLOYMENT_TARGET: 18.0
+targets:
+  LittleRip:
+    type: application
+    platform: iOS
+    sources:
+      - LittleRip
+      - Shared
+    dependencies:
+      - target: LittleRipWidgetExtension
+        embed: true
+    entitlements:
+      path: LittleRip/LittleRip.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.maxautomize.LittleRip
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.maxautomize.LittleRip
+        PRODUCT_NAME: LittleRip
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+  LittleRipWidgetExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - LittleRipWidgetExtension
+      - Shared
+    entitlements:
+      path: LittleRipWidgetExtension/LittleRipWidgetExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.maxautomize.LittleRip
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.maxautomize.LittleRip.LittleRipWidgetExtension
+        PRODUCT_NAME: LittleRipWidgetExtension
+        INFOPLIST_FILE: LittleRipWidgetExtension/Info.plist
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
