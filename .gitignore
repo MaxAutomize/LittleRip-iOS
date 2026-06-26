@@ -16,3 +16,6 @@ xcuserdata/
 
 # Local device secrets (UDID) — keep out of git
 local-env.sh
+
+# Optional local-only secret overrides
+LittleRip/OllamaSecrets.local.swift

@@ -1,39 +1,36 @@
 #!/bin/bash
-# LittleRip refresh — runs at Friday noon OR at login if app is expired
-# The launchd job handles the schedule; this script checks if a refresh is needed
+# LittleRip refresh checker — runs at login and every 6 hours via launchd.
+# Refreshes before free Apple Developer signing hits the 7-day expiry.
 
-# Check if LittleRip.iOS provisioning profile is within 1 day of expiry
-# If so, force a refresh regardless of day
 NEEDS_REFRESH=false
+MAX_AGE=518400 # 6 days
 
-# Check iOS app age — if no build in last 6 days, refresh
+check_bundle_age() {
+  local label="$1"
+  local bundle_path="$2"
+
+  if [ -n "$bundle_path" ] && [ -d "$bundle_path" ]; then
+    local age=$(( $(date +%s) - $(stat -f %m "$bundle_path") ))
+    if [ "$age" -gt "$MAX_AGE" ]; then
+      NEEDS_REFRESH=true
+      echo "$label is older than 6 days, refreshing..."
+    else
+      echo "$label is fresh."
+    fi
+  else
+    NEEDS_REFRESH=true
+    echo "$label not found, refreshing..."
+  fi
+}
+
 IOS_APP=$(find ~/Library/Developer/Xcode/DerivedData/LittleRip-*/Build/Products/Debug-iphoneos/LittleRip.app -maxdepth 0 -type d 2>/dev/null | grep -v Index.noindex | head -1)
-if [ -n "$IOS_APP" ]; then
-  BUILD_AGE=$(( $(date +%s) - $(stat -f %m "$IOS_APP") ))
-  if [ $BUILD_AGE -gt 518400 ]; then  # 6 days in seconds
-    NEEDS_REFRESH=true
-    echo "iOS app is older than 6 days, refreshing..."
-  fi
-else
-  NEEDS_REFRESH=true
-  echo "No iOS app found, refreshing..."
-fi
+WDA_APP=$(find ~/Library/Developer/Xcode/DerivedData/WebDriverAgent-*/Build/Products/Debug-iphoneos/WebDriverAgentRunner-Runner.app -maxdepth 0 -type d 2>/dev/null | head -1)
 
-# Check macOS app age
-MAC_APP="/Applications/LittleRip.app"
-if [ -d "$MAC_APP" ]; then
-  MAC_AGE=$(( $(date +%s) - $(stat -f %m "$MAC_APP") ))
-  if [ $MAC_AGE -gt 518400 ]; then
-    NEEDS_REFRESH=true
-    echo "macOS app is older than 6 days, refreshing..."
-  fi
-else
-  NEEDS_REFRESH=true
-  echo "macOS app missing, refreshing..."
-fi
+check_bundle_age "LittleRip iOS app" "$IOS_APP"
+check_bundle_age "WebDriverAgent" "$WDA_APP"
 
 if [ "$NEEDS_REFRESH" = true ]; then
-  exec /Users/maxrippley/Desktop/LittleRip/refresh.sh
+  exec "$(dirname "$0")/refresh.sh"
 else
-  echo "Apps are fresh, no refresh needed."
+  echo "LittleRip iOS app + WebDriverAgent are fresh, no refresh needed."
 fi
