@@ -48,14 +48,16 @@ struct TopicGenerateResponse: Decodable {
 }
 
 final class WebSearchClient {
-    static func search(_ query: String) async -> [WebSearchResult] {
-        // Wikipedia-only search. Results are cleaned, deduplicated, then sorted
-        // so the most relevant article appears first in the source cards.
-        let topic = wikipediaTopic(from: query)
-        let primaryCandidates = await searchWikipedia(topic) ?? []
-        let primary = primaryCandidates.sorted { relevanceScore($0, topic: topic) > relevanceScore($1, topic: topic) }.first
-        let primaryTitle = primary?.title ?? topic
-        let semanticTitles = await semanticWikipediaTopics(for: query, cleanedTopic: topic, primaryTitle: primaryTitle)
+    static func search(_ query: String, history: String = "") async -> [WebSearchResult] {
+        // Wikipedia-only search. The topic list is chosen semantically using the
+        // current question plus recent session context, so vague follow-ups still
+        // produce relevant Wiki links.
+        let lexicalTopic = wikipediaTopic(from: query)
+        let semanticTitles = await semanticWikipediaTopics(for: query, history: history, cleanedTopic: lexicalTopic, primaryTitle: lexicalTopic)
+        let resolvedTopic = semanticTitles.first ?? lexicalTopic
+
+        let primaryCandidates = await searchWikipedia(resolvedTopic) ?? []
+        let primary = primaryCandidates.sorted { relevanceScore($0, topic: resolvedTopic) > relevanceScore($1, topic: resolvedTopic) }.first
 
         var combined: [WebSearchResult] = []
         if let primary { combined.append(primary) }
@@ -79,11 +81,11 @@ final class WebSearchClient {
 
         // Never silently omit sources: if article lookup fails, show a clickable
         // Wikipedia search link so the user still gets a source area.
-        let encoded = topic.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? topic.replacingOccurrences(of: " ", with: "+")
+        let encoded = resolvedTopic.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? resolvedTopic.replacingOccurrences(of: " ", with: "+")
         return [WebSearchResult(
-            title: "Wikipedia search: \(topic)",
+            title: "Wikipedia search: \(resolvedTopic)",
             url: "https://en.wikipedia.org/w/index.php?search=\(encoded)",
-            snippet: "Wikipedia search results for the cleaned topic: \(topic)."
+            snippet: "Wikipedia search results for the resolved topic: \(resolvedTopic)."
         )]
     }
 
@@ -188,18 +190,22 @@ final class WebSearchClient {
         }
     }
 
-    private static func semanticWikipediaTopics(for query: String, cleanedTopic: String, primaryTitle: String) async -> [String] {
+    private static func semanticWikipediaTopics(for query: String, history: String, cleanedTopic: String, primaryTitle: String) async -> [String] {
         guard let url = URL(string: "https://ollama.com/api/generate") else { return [] }
 
         let prompt = """
-        User question: \(query)
-        Cleaned topic: \(cleanedTopic)
-        Primary Wikipedia article: \(primaryTitle)
+        Recent session context:
+        \(history.isEmpty ? "No prior context." : history)
+
+        Current user question: \(query)
+        Lexically cleaned topic: \(cleanedTopic)
+        Initial guess: \(primaryTitle)
 
         Return ONLY a compact JSON array of 6 to 8 Wikipedia article titles.
-        The first title must be the primary/canonical article.
+        The first title must be the best primary/canonical article for the user's CURRENT question after resolving it against the recent session context.
         The remaining titles must be semantically related by meaning, theme, prerequisite knowledge, people, organizations, mechanisms, or neighboring concepts.
         Do NOT pick pages merely because the words look similar.
+        If the current question is vague ("what about him", "what would he say", "this", "that"), infer the missing subject from recent session context before choosing titles.
 
         Examples:
         - If topic is H-bridge: ["H-bridge", "DC motor", "Power electronics", "MOSFET", "Pulse-width modulation", "Motor controller", "Electric motor"]

@@ -496,7 +496,7 @@ struct ContentView: View {
         isAsking = true
 
         Task {
-            let searchResults = await WebSearchClient.search(prompt)
+            let searchResults = await WebSearchClient.search(prompt, history: history)
 
             await MainActor.run { isSearching = false }
 

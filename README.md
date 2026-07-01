@@ -1,23 +1,47 @@
 # LittleRip for iOS
 
-LittleRip is a personal iOS app whose headline feature is a **lock-screen Control Widget that unlocks your SmartRent front door** with one tap — no app launch required.
+LittleRip is a personal iOS app with two parts:
 
-## What's inside
+1. **LittleRip AI assistant** — a Siri-like text/voice assistant powered by direct Ollama Cloud `glm-5.1`.
+2. **SmartRent door widget** — a preserved Control Widget that unlocks the SmartRent front door without opening the app.
 
-- **`Shared/SmartRentClient.swift`** — talks to the SmartRent API: logs in, finds the front-door `entry_control` lock, and sends the `locked=false` command over their Phoenix websocket.
-- **`Shared/UnlockFrontDoorIntent.swift`** — an `AppIntent` the widget runs (always allowed, runs without opening the app).
-- **`LittleRipWidgetExtension/`** — a `ControlWidget` ("Unlock Door") that appears in the lock-screen controls / Dynamic Island region and fires `UnlockFrontDoorIntent`.
-- **`LittleRip/`** — the main app: save your SmartRent email/password (shared via App Group `group.com.maxautomize.LittleRip` so the widget can read them).
+## Current app experience
 
-## Why it auto-relaunches every 6 days
+- Chrome / black / white robot branding with green robot eyes.
+- Text and voice input.
+- Responses are structured with `DEFINITION`, `EXPLANATION`, `ANALOGY`, and `FIRST PRINCIPLES` sections.
+- Wikipedia source cards are labeled **Wiki**.
+- Wiki articles are selected semantically using the current prompt plus recent in-session context, so vague follow-ups like “what about him?” still choose relevant articles.
+- Chat context is session-only: it survives while the app is open, but resets when the app is killed/restarted.
+- Model audio is not spoken aloud automatically.
+- Response text is selectable.
 
-These apps are signed with a **free Apple Developer account**, whose provisioning profiles expire after **7 days**. To stay installed, a launchd job runs `check-refresh.sh` → `refresh.sh`:
+## SmartRent widget
 
-1. Checks the build age of the installed iOS (and macOS) app
-2. If older than **6 days** (518,400 s), rebuilds with XcodeGen + xcodebuild and reinstalls over USB (`xcrun devicectl device install app`)
-3. Otherwise skips — keeping the apps perpetually within their 7-day window
+The door unlock flow remains independent of the AI assistant:
 
-The device **UDID is not in the repo** — `refresh.sh` sources a gitignored `local-env.sh`. Copy `local-env.example.sh` to `local-env.sh` and set `IOS_DEVICE_UDID` to your phone's UDID.
+- **`Shared/SmartRentClient.swift`** — talks to the SmartRent API: logs in, finds the front-door `entry_control` lock, and sends the unlock command over the Phoenix websocket.
+- **`Shared/UnlockFrontDoorIntent.swift`** — `AppIntent` used by the widget.
+- **`LittleRipWidgetExtension/`** — Control Widget for one-tap unlock.
+
+SmartRent credentials are stored in the shared App Group user defaults by the app. No credentials are committed.
+
+## AI / Wiki files
+
+- **`LittleRip/OllamaClient.swift`** — direct Ollama Cloud API client.
+- **`LittleRip/WebSearchClient.swift`** — semantic Wikipedia topic selection and Wiki card fetching.
+- **`LittleRip/VoiceInputManager.swift`** — Apple speech recognizer / microphone handling.
+- **`LittleRip/ContentView.swift`** — assistant UI, selectable text, session context, Wiki cards, and keyboard behavior.
+- **`LittleRip/OllamaSecrets.swift`** — local-only API key file. The committed version is a placeholder; real secrets stay out of Git.
+
+## Refresh automation
+
+These apps are signed with a free Apple Developer account, so provisioning profiles expire after 7 days. Launchd runs:
+
+- `check-refresh.sh` — checks actual `embedded.mobileprovision` expiration for the iOS app, widget extension, and WebDriverAgent.
+- `refresh.sh` — rebuilds and reinstalls LittleRip + WebDriverAgent over USB when signing is close to expiry.
+
+Local device/team overrides live in a gitignored `local-env.sh`.
 
 ## Building
 
@@ -31,6 +55,10 @@ xcodebuild -project LittleRip.xcodeproj -scheme LittleRip \
 
 ## Configuration
 
-- **Bundle ID:** `com.maxautomize.LittleRip` (+ `.LittleRipWidgetExtension`)
+- **Bundle ID:** `com.maxautomize.LittleRip`
+- **Widget bundle ID:** `com.maxautomize.LittleRip.LittleRipWidgetExtension`
 - **App Group:** `group.com.maxautomize.LittleRip`
-- **SmartRent credentials:** stored in the shared `UserDefaults` by the main app; the widget reads them at tap time. No credentials are in this repo.
+- **Default model:** `glm-5.1`
+- **Default Ollama host:** `https://ollama.com`
+- **SmartRent credentials:** local/shared user defaults only
+- **Ollama API key:** local-only `OllamaSecrets.swift`; never commit the real key
