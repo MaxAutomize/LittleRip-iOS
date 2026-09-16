@@ -19,3 +19,4 @@ local-env.sh
 
 # Optional local-only secret overrides
 LittleRip/OllamaSecrets.local.swift
+.vercel

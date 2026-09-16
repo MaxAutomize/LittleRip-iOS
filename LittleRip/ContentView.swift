@@ -1,4 +1,3 @@
-import AVFAudio
 import SwiftUI
 import UIKit
 
@@ -10,6 +9,10 @@ struct SelectableTextView: UIViewRepresentable {
 
     final class Coordinator: NSObject {
         let onTap: () -> Void
+        var lastRenderedText: String?
+        var lastFontSize: CGFloat = -1
+        var lastColor: UIColor?
+
         init(onTap: @escaping () -> Void) { self.onTap = onTap }
         @objc func tapped() { onTap() }
     }
@@ -26,6 +29,8 @@ struct SelectableTextView: UIViewRepresentable {
         view.backgroundColor = .clear
         view.textContainerInset = .zero
         view.textContainer.lineFragmentPadding = 0
+        view.textContainer.lineBreakMode = .byWordWrapping
+        view.textContainer.widthTracksTextView = true
         view.dataDetectorTypes = [.link]
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped))
@@ -37,9 +42,24 @@ struct SelectableTextView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: UITextView, context: Context) {
-        view.text = text
-        view.font = UIFont(name: "Times New Roman", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
-        view.textColor = color
+        let coordinator = context.coordinator
+        if coordinator.lastRenderedText == text,
+           coordinator.lastFontSize == fontSize,
+           coordinator.lastColor?.isEqual(color) == true {
+            return
+        }
+
+        let font = UIFont(name: "Times New Roman", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 2
+        view.attributedText = NSAttributedString(string: text, attributes: [
+            .font: font,
+            .foregroundColor: color,
+            .paragraphStyle: paragraph
+        ])
+        coordinator.lastRenderedText = text
+        coordinator.lastFontSize = fontSize
+        coordinator.lastColor = color
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
@@ -128,12 +148,20 @@ struct RobotProspectorLogo: View {
     }
 }
 
+enum ConversationMode {
+    case normal
+    case research
+}
+
 struct Message: Identifiable {
     let id = UUID()
     let role: Role
+    let mode: ConversationMode
     let text: String
     let thinking: String
     let sources: [WebSearchResult]
+    let hasImage: Bool
+    let image: UIImage?
 
     enum Role {
         case user
@@ -142,12 +170,17 @@ struct Message: Identifiable {
 }
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var voice = VoiceInputManager()
+    @StateObject private var chatGPT = ChatGPTCodexClient()
+    @StateObject private var location = LocationService()
+    @StateObject private var actions = AssistantActionService()
+    @StateObject private var messageComposer = MessageComposeService()
     @State private var showSettings = false
-    @State private var ollamaURL = "https://ollama.com"
-    @State private var ollamaModel = "glm-5.1"
     @State private var isAsking = false
     @State private var isSearching = false
+    @State private var isLookingUp = false
+    @State private var wikiResearchStatus = ""
     @State private var typedPrompt = ""
     @State private var messages: [Message] = []
     @State private var usedVoice = false
@@ -155,7 +188,7 @@ struct ContentView: View {
     @State private var questionScrollNonce = 0
     @State private var replyScrollNonce = 0
     @FocusState private var isFieldFocused: Bool
-    private let synthesizer = AVSpeechSynthesizer()
+    @State private var searchMode = false
 
     private let gold = Color(red: 0.84, green: 0.87, blue: 0.88) // silver accent
     private let goldDim = Color(red: 0.34, green: 0.36, blue: 0.38) // dark silver
@@ -167,8 +200,10 @@ struct ContentView: View {
             ZStack {
                 LinearGradient(colors: [darkBg, Color(red: 0.09, green: 0.10, blue: 0.11), Color.black], startPoint: .top, endPoint: .bottom)
                     .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard() }
 
-                VStack(spacing: 18) {
+                VStack(spacing: 12) {
                     header
                     conversation
                     inputArea
@@ -176,9 +211,26 @@ struct ContentView: View {
                 .padding()
             }
             .task {
-                UserDefaults.standard.set("https://ollama.com", forKey: "ollama.url")
-                UserDefaults.standard.set("glm-5.1", forKey: "ollama.model")
+                chatGPT.resumeLoginIfNeeded()
+                location.requestAccess()
                 await voice.requestPermissions()
+                startVoiceFromWidgetIfRequested()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    startVoiceFromWidgetIfRequested()
+                }
+            }
+            .sheet(isPresented: $showSettings) {
+                settingsSheet
+            }
+            .sheet(item: $messageComposer.draft, onDismiss: {
+                messageComposer.cancelIfNeeded()
+            }) { draft in
+                LittleRipMessageComposer(draft: draft) { outcome in
+                    messageComposer.finish(outcome)
+                }
+                .ignoresSafeArea()
             }
             .onChange(of: voice.isListening) { _, listening in
                 if !listening && usedVoice {
@@ -194,24 +246,63 @@ struct ContentView: View {
     }
 
     private var header: some View {
-        VStack(spacing: 8) {
-            Image("RobotMinerIcon")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 124, height: 124)
-                .shadow(color: Color.white.opacity(0.22), radius: 18)
+        ZStack(alignment: .top) {
+            VStack(spacing: 5) {
+                Image("RobotMinerIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 112, height: 112)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: Color.white.opacity(0.22), radius: 18)
 
-            Text("LittleRip")
-                .font(.custom("Times New Roman", size: 34))
-                .foregroundColor(gold)
+                Text("LittleRip")
+                    .font(.custom("Times New Roman", size: 34))
+                    .foregroundColor(gold)
 
-            Text(statusLabel)
-                .font(.custom("Times New Roman", size: 15))
-                .foregroundStyle(gold.opacity(0.5))
+                Text(statusLabel)
+                    .font(.custom("Times New Roman", size: 15))
+                    .foregroundStyle(gold.opacity(0.5))
+            }
+            .offset(y: -8)
+            .padding(.bottom, -8)
+            .contentShape(Rectangle())
+            .onTapGesture { dismissKeyboard() }
+
+            VStack(spacing: 5) {
+                HStack {
+                    Button {
+                        guard !isAsking else { return }
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            searchMode.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "globe")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(searchMode ? Color.black : Color.white.opacity(0.95))
+                            .frame(width: 36, height: 36)
+                            .background(searchMode ? gold : Color.white.opacity(0.18), in: Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(gold.opacity(searchMode ? 0.75 : 0.35), lineWidth: 1)
+                            )
+                            .shadow(color: searchMode ? gold.opacity(0.6) : Color.black.opacity(0.35), radius: 8)
+                    }
+                    .accessibilityLabel("Wiki mode")
+
+                    Spacer()
+
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.95))
+                            .frame(width: 36, height: 36)
+                            .background(Color.white.opacity(0.18), in: Circle())
+                            .overlay(Circle().stroke(gold.opacity(0.35), lineWidth: 1))
+                    }
+                    .accessibilityLabel("ChatGPT settings")
+                }
+            }
         }
-        .padding(.top, 4)
-        .contentShape(Rectangle())
-        .onTapGesture { dismissKeyboard() }
     }
 
     private func dismissKeyboard() {
@@ -219,17 +310,30 @@ struct ContentView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
+    private func startVoiceFromWidgetIfRequested() {
+        let defaults = UserDefaults(suiteName: "group.com.maxautomize.LittleRip")
+        guard defaults?.bool(forKey: "littlerip.startVoice") == true else { return }
+        defaults?.removeObject(forKey: "littlerip.startVoice")
+        usedVoice = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            voice.startListening()
+        }
+    }
+
     private var statusLabel: String {
         if voice.isListening { return "Listening" }
+        if !wikiResearchStatus.isEmpty { return wikiResearchStatus }
+        if isLookingUp { return "Looking it up" }
         if isSearching { return "Searching the web" }
         if isAsking { return "Thinking" }
-        return "Tap the microphone to speak, or type below"
+        if searchMode { return "Searching, deep answers" }
+        return "Ask anything, direct answers"
     }
 
     private var conversation: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 10) {
                     ForEach(messages) { message in
                         messageView(message)
                             .id(message.id)
@@ -250,17 +354,13 @@ struct ContentView: View {
             .onChange(of: questionScrollNonce) { _, _ in
                 guard let questionId = lastQuestionId else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    withAnimation(.easeOut(duration: 0.35)) {
-                        proxy.scrollTo(questionId, anchor: .bottom)
-                    }
+                    proxy.scrollTo(questionId, anchor: .bottom)
                 }
             }
             .onChange(of: replyScrollNonce) { _, _ in
                 guard let questionId = lastQuestionId else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
-                    withAnimation(.easeInOut(duration: 0.75)) {
-                        proxy.scrollTo(questionId, anchor: .top)
-                    }
+                    proxy.scrollTo(questionId, anchor: .top)
                 }
             }
         }
@@ -275,9 +375,20 @@ struct ContentView: View {
             if message.role == .user {
                 HStack {
                     Spacer(minLength: 28)
-                    SelectableTextView(text: message.text, fontSize: 16, color: .white, onTap: dismissKeyboard)
-                        .padding(12)
-                        .background(goldDim.opacity(0.5), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    VStack(alignment: .trailing, spacing: 6) {
+                        if let img = message.image {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 100, height: 133)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(gold.opacity(0.4), lineWidth: 1))
+                        }
+
+                        SelectableTextView(text: message.text, fontSize: 16, color: .white, onTap: dismissKeyboard)
+                            .padding(12)
+                            .background(goldDim.opacity(0.5), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
                 }
             } else {
                 VStack(alignment: .leading, spacing: 8) {
@@ -289,38 +400,57 @@ struct ContentView: View {
                         sourcesList(message.sources)
                     }
 
-                    if !message.thinking.isEmpty {
-                        DisclosureGroup("Reasoning") {
-                            SelectableTextView(text: message.thinking, fontSize: 13, color: UIColor.white.withAlphaComponent(0.55), onTap: dismissKeyboard)
-                                .padding(10)
-                                .background(gold.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                        .tint(gold.opacity(0.6))
-                        .font(.custom("Times New Roman", size: 13))
-                    }
                 }
             }
         }
     }
 
+    private struct AssistantTextBlock: Identifiable {
+        let id: Int
+        let title: String?
+        let body: String
+    }
+
+    private func assistantTextBlocks(from text: String) -> [AssistantTextBlock] {
+        var blocks: [AssistantTextBlock] = []
+        var title: String?
+        var bodyLines: [String] = []
+
+        func appendCurrentBlock() {
+            let body = bodyLines.joined(separator: "\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard title != nil || !body.isEmpty else { return }
+            blocks.append(AssistantTextBlock(id: blocks.count, title: title, body: body))
+        }
+
+        for line in text.components(separatedBy: .newlines) {
+            if let header = headerInfo(for: line) {
+                appendCurrentBlock()
+                title = header.title
+                bodyLines = header.body.isEmpty ? [] : [header.body]
+            } else {
+                bodyLines.append(line)
+            }
+        }
+        appendCurrentBlock()
+        return blocks
+    }
+
     private func formattedAssistantText(_ text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(Array(text.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
-                if let header = headerInfo(for: line) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(header.title)
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(assistantTextBlocks(from: text)) { block in
+                VStack(alignment: .leading, spacing: 3) {
+                    if let title = block.title {
+                        Text(title)
                             .font(.custom("Times New Roman", size: 18).bold())
                             .foregroundStyle(gold)
                             .textCase(.uppercase)
                             .tracking(1.2)
-
-                        if !header.body.isEmpty {
-                            SelectableTextView(text: header.body, fontSize: 16, color: UIColor.white.withAlphaComponent(0.92), onTap: dismissKeyboard)
-                        }
                     }
-                    .padding(.top, 3)
-                } else if !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    SelectableTextView(text: line, fontSize: 16, color: UIColor.white.withAlphaComponent(0.92), onTap: dismissKeyboard)
+
+                    if !block.body.isEmpty {
+                        SelectableTextView(text: block.body, fontSize: 16, color: UIColor.white.withAlphaComponent(0.92), onTap: dismissKeyboard)
+                    }
                 }
             }
         }
@@ -328,9 +458,12 @@ struct ContentView: View {
 
     private func headerInfo(for line: String) -> (title: String, body: String)? {
         var trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "**", with: "")
+            .replacingOccurrences(of: "__", with: "")
+        trimmed = trimmed.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "#")))
         trimmed = trimmed.replacingOccurrences(of: "^\\d+[.)]\\s*", with: "", options: .regularExpression)
         let upper = trimmed.uppercased()
-        for title in ["DEFINITION", "EXPLANATION", "ANALOGY", "FIRST PRINCIPLES", "SOURCES", "SOURCE"] {
+        for title in ["REFINE", "VARIABLES", "EQUATION", "OPTIMIZE", "EVALUATION", "EXPLANATION", "SUMMARY", "IMPLICATION", "DEFINITION", "ANALOGY", "FIRST PRINCIPLES", "SOURCES", "SOURCE"] {
             if upper == title || upper == "\(title):" {
                 return (title, "")
             }
@@ -343,26 +476,39 @@ struct ContentView: View {
     }
 
     private func sourcesList(_ sources: [WebSearchResult]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Wiki")
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Wikipedia articles")
                 .font(.custom("Times New Roman", size: 17).bold())
                 .foregroundStyle(gold)
 
-            ForEach(sources.prefix(5)) { source in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(source.title)
-                        .font(.custom("Times New Roman", size: 14).bold())
-                        .foregroundStyle(.white.opacity(0.9))
-                    SelectableTextView(text: String(source.snippet.prefix(120)), fontSize: 12, color: UIColor.white.withAlphaComponent(0.6), onTap: dismissKeyboard)
-                        .frame(maxHeight: 42)
-                    Link(destination: URL(string: source.url) ?? URL(string: "https://example.com")!) {
-                        Text(source.url)
-                            .font(.custom("Times New Roman", size: 11))
-                            .foregroundStyle(gold.opacity(0.7))
-                            .underline()
+            Text("Selected for this question, most useful first")
+                .font(.custom("Times New Roman", size: 12))
+                .foregroundStyle(.white.opacity(0.55))
+
+            ForEach(Array(sources.prefix(6).enumerated()), id: \.element.id) { index, source in
+                let destination = URL(string: source.url) ?? URL(string: "https://en.wikipedia.org")!
+                VStack(alignment: .leading, spacing: 4) {
+                    Link(destination: destination) {
+                        HStack(alignment: .firstTextBaseline, spacing: 7) {
+                            Text("\(index + 1).")
+                                .foregroundStyle(gold.opacity(0.75))
+                            Text(source.title)
+                                .font(.custom("Times New Roman", size: 15).bold())
+                                .foregroundStyle(.white.opacity(0.95))
+                                .underline()
+                        }
+                    }
+
+                    SelectableTextView(text: String(source.snippet.prefix(190)), fontSize: 12, color: UIColor.white.withAlphaComponent(0.64), onTap: dismissKeyboard)
+                        .frame(maxHeight: 56)
+
+                    Link(destination: destination) {
+                        Label("Open on Wikipedia", systemImage: "arrow.up.right.square")
+                            .font(.custom("Times New Roman", size: 12))
+                            .foregroundStyle(gold.opacity(0.82))
                     }
                 }
-                .padding(.leading, 12)
+                .padding(.leading, 8)
             }
         }
         .padding(12)
@@ -379,6 +525,25 @@ struct ContentView: View {
             }
 
             HStack(spacing: 10) {
+                Button {
+                    dismissKeyboard()
+                    if voice.isListening {
+                        // Keeping usedVoice true lets the completion handler send the transcript.
+                        voice.stopListening()
+                    } else {
+                        usedVoice = true
+                        voice.startListening()
+                    }
+                } label: {
+                    Image(systemName: voice.isListening ? "stop.fill" : "mic.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(voice.isListening ? Color.black : Color.white.opacity(0.95))
+                        .frame(width: 44, height: 44)
+                        .background(voice.isListening ? Color.red.opacity(0.9) : Color.white.opacity(0.18), in: Circle())
+                        .overlay(Circle().stroke(gold.opacity(0.35), lineWidth: 1))
+                }
+                .accessibilityLabel(voice.isListening ? "Stop listening and send" : "Start voice input")
+
                 TextField("Ask LittleRip", text: $typedPrompt, axis: .vertical)
                     .lineLimit(1...4)
                     .textFieldStyle(.plain)
@@ -400,24 +565,6 @@ struct ContentView: View {
                     }
 
                 Button {
-                    if voice.isListening {
-                        voice.stopListening()
-                    } else {
-                        usedVoice = true
-                        dismissKeyboard()
-                        voice.startListening()
-                    }
-                } label: {
-                    Image(systemName: voice.isListening ? "stop.fill" : "mic.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(Color.black)
-                        .frame(width: 48, height: 48)
-                        .background(voice.isListening ? Color.red.opacity(0.78) : gold, in: Circle())
-                        .shadow(color: voice.isListening ? Color.red.opacity(0.4) : gold.opacity(0.45), radius: 10)
-                }
-                .accessibilityLabel(voice.isListening ? "Stop listening" : "Start listening")
-
-                Button {
                     usedVoice = false
                     dismissKeyboard()
                     sendPrompt()
@@ -427,7 +574,7 @@ struct ContentView: View {
                         .foregroundStyle(canSend ? Color.black : Color.white.opacity(0.45))
                         .frame(width: 48, height: 48)
                         .background(canSend ? gold : gold.opacity(0.18), in: Circle())
-                        .shadow(color: canSend ? Color.white.opacity(0.45) : .clear, radius: 12)
+                        .shadow(color: canSend ? gold.opacity(0.6) : .clear, radius: 12)
                 }
                 .disabled(!canSend)
             }
@@ -444,41 +591,50 @@ struct ContentView: View {
                 LinearGradient(colors: [darkBg, Color(red: 0.09, green: 0.10, blue: 0.11), Color.black], startPoint: .top, endPoint: .bottom)
                     .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("AI Configuration")
-                            .font(.headline)
-                            .foregroundStyle(gold)
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("GPT-5.6 Terra")
+                        .font(.headline)
+                        .foregroundStyle(gold)
 
-                        TextField("Ollama URL", text: $ollamaURL)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-                            .autocorrectionDisabled()
-                            .textFieldStyle(.roundedBorder)
+                    Text(chatGPT.isAuthenticated ? "Connected to ChatGPT. Quick and Wiki use GPT-5.6 Terra." : "Connect ChatGPT to use GPT-5.6 Terra in every mode.")
+                        .foregroundStyle(.white.opacity(0.8))
 
-                        TextField("Model", text: $ollamaModel)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .textFieldStyle(.roundedBorder)
-
-                        Button("Save") {
-                            UserDefaults.standard.set(ollamaURL, forKey: "ollama.url")
-                            UserDefaults.standard.set(ollamaModel, forKey: "ollama.model")
+                    if chatGPT.isAuthenticated {
+                        Button("Sign Out") { chatGPT.signOut() }
+                            .buttonStyle(.bordered)
+                    } else {
+                        Button(chatGPT.isSigningIn ? "Connecting…" : "Connect ChatGPT") {
+                            chatGPT.startLogin()
                         }
+                        .disabled(chatGPT.isSigningIn)
                         .buttonStyle(.borderedProminent)
                         .tint(gold)
+
+                        if let code = chatGPT.deviceCode {
+                            Text("Enter code: \(code)")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundStyle(gold)
+                        }
                     }
-                    .padding()
+
+                    if let error = chatGPT.errorMessage {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red.opacity(0.9))
+                    }
+
+                    Spacer()
                 }
+                .padding()
             }
-            .navigationTitle("Settings")
+            .navigationTitle("ChatGPT")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 
     private func sendPrompt() {
         let prompt = typedPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prompt.isEmpty, !isAsking else { return }
+        guard !prompt.isEmpty && !isAsking else { return }
 
         if voice.isListening {
             voice.stopListening()
@@ -488,54 +644,173 @@ struct ContentView: View {
         dismissKeyboard()
         let history = sessionContext()
         typedPrompt = ""
-        let question = Message(role: .user, text: prompt, thinking: "", sources: [])
+
+        let notificationIntent = actions.shouldPlanNotification(for: prompt)
+        let requestMode: ConversationMode = searchMode && !notificationIntent ? .research : .normal
+        let question = Message(role: .user, mode: requestMode, text: prompt, thinking: "", sources: [], hasImage: false, image: nil)
         lastQuestionId = question.id
         messages.append(question)
         questionScrollNonce += 1
-        isSearching = true
         isAsking = true
 
-        Task {
-            let searchResults = await WebSearchClient.search(prompt, history: history)
-
-            await MainActor.run { isSearching = false }
-
-            do {
-                let client = try OllamaClient(baseURLString: ollamaURL, model: ollamaModel)
-                let result = try await client.ask(prompt, sources: searchResults, history: history)
+        if notificationIntent {
+            isSearching = false
+            Task {
+                let confirmation = await semanticActionResult(for: prompt, history: history)
+                    ?? "I couldn’t understand that native action request. Tell me what to do and include any needed person, message, or time."
                 await MainActor.run {
-                    messages.append(Message(role: .assistant, text: result.answer, thinking: result.thinking, sources: result.sources))
+                    messages.append(Message(role: .assistant, mode: .normal, text: confirmation, thinking: "", sources: [], hasImage: false, image: nil))
                     isAsking = false
                     replyScrollNonce += 1
                 }
-            } catch {
+            }
+            return
+        }
+
+        if searchMode {
+            isSearching = true
+            wikiResearchStatus = "Understanding your question"
+
+            Task {
+                // Run the same hidden semantic action planner even in Wiki mode.
+                // A notification request should never depend on trigger words or
+                // accidentally turn into Wikipedia research.
+                if let actionResult = await semanticActionResult(for: prompt, history: history) {
+                    await MainActor.run {
+                        messages.append(Message(role: .assistant, mode: .normal, text: actionResult, thinking: "", sources: [], hasImage: false, image: nil))
+                        isSearching = false
+                        wikiResearchStatus = ""
+                        isAsking = false
+                        replyScrollNonce += 1
+                    }
+                    return
+                }
+
+                // First use the reasoning model to understand the whole idea and
+                // choose canonical article titles—not merely words in the prompt.
+                let plannedTopics: [String]
+                do {
+                    plannedTopics = try await chatGPT.planWikipediaArticles(prompt: prompt, history: history)
+                } catch {
+                    plannedTopics = []
+                }
+
                 await MainActor.run {
-                    messages.append(Message(role: .assistant, text: "Error: \(error.localizedDescription)", thinking: "", sources: []))
-                    isAsking = false
-                    replyScrollNonce += 1
+                    wikiResearchStatus = plannedTopics.isEmpty
+                        ? "Finding Wikipedia articles"
+                        : "Reading selected Wikipedia articles"
+                }
+                let searchResults = await WebSearchClient.search(
+                    prompt,
+                    history: history,
+                    plannedTopics: plannedTopics
+                )
+                await MainActor.run {
+                    isSearching = false
+                    wikiResearchStatus = "Writing from Wikipedia"
+                }
+
+                do {
+                    let result = try await chatGPT.ask(prompt: prompt, history: history, mode: .wiki, sources: searchResults)
+                    await MainActor.run {
+                        messages.append(Message(role: .assistant, mode: .research, text: result.answer, thinking: result.thinking, sources: searchResults, hasImage: false, image: nil))
+                        wikiResearchStatus = ""
+                        isAsking = false
+                        replyScrollNonce += 1
+                    }
+                } catch {
+                    await MainActor.run {
+                        messages.append(Message(role: .assistant, mode: .research, text: "Error: \(error.localizedDescription)", thinking: "", sources: [], hasImage: false, image: nil))
+                        wikiResearchStatus = ""
+                        isAsking = false
+                        replyScrollNonce += 1
+                    }
+                }
+            }
+        } else {
+            isSearching = false
+
+            Task {
+                do {
+                    // Every non-keyword-matched prompt gets a semantic tool pass.
+                    // If it resolves a notification action, return the native
+                    // scheduler confirmation directly and skip normal chat.
+                    if let actionResult = await semanticActionResult(for: prompt, history: history) {
+                        await MainActor.run {
+                            messages.append(Message(role: .assistant, mode: .normal, text: actionResult, thinking: "", sources: [], hasImage: false, image: nil))
+                            isLookingUp = false
+                            isAsking = false
+                            replyScrollNonce += 1
+                        }
+                        return
+                    }
+
+                    let needsLookup = LiveLookupService.shouldLookup(prompt: prompt, history: history)
+                    if needsLookup {
+                        await MainActor.run { isLookingUp = true }
+                    }
+                    let lookupContext = await LiveLookupService.lookupContext(for: prompt, history: history, locationService: location)
+                    await MainActor.run { isLookingUp = false }
+                    let liveContext = lookupContext ?? ""
+                    let result = try await chatGPT.ask(prompt: prompt, history: history, mode: .quick, liveLookupContext: liveContext.isEmpty ? nil : liveContext)
+                    await MainActor.run {
+                        messages.append(Message(role: .assistant, mode: .normal, text: result.answer, thinking: result.thinking, sources: [], hasImage: false, image: nil))
+                        isLookingUp = false
+                        isAsking = false
+                        replyScrollNonce += 1
+                    }
+                } catch {
+                    await MainActor.run {
+                        messages.append(Message(role: .assistant, mode: .normal, text: "Error: \(error.localizedDescription)", thinking: "", sources: [], hasImage: false, image: nil))
+                        isLookingUp = false
+                        isAsking = false
+                        replyScrollNonce += 1
+                    }
                 }
             }
         }
     }
 
+    /// Uses the authenticated agent as a hidden tool planner. The visible model
+    /// response never triggers an action: only a structured plan reaches the
+    /// scheduler, and the returned text is the scheduler's post-success result.
+    private func semanticActionResult(for prompt: String, history: String) async -> String? {
+        let localPlan = actions.localPlan(for: prompt)
+        let semanticPlan: AssistantActionPlan?
+        switch localPlan {
+        case .scheduleNotification, .composeMessage:
+            semanticPlan = localPlan
+        case .clarification, .none:
+            semanticPlan = try? await chatGPT.planAssistantAction(prompt: prompt, history: history)
+        }
+
+        if case .composeMessage(let recipient, let body) = semanticPlan {
+            return await messageComposer.compose(recipient: recipient, body: body)
+        }
+        return await actions.perform(for: prompt, semanticPlan: semanticPlan)
+    }
+
     private func sessionContext() -> String {
         messages.suffix(12).map { message in
+            let modeLabel: String
+            switch message.mode {
+            case .normal: modeLabel = "Normal Mode"
+            case .research: modeLabel = "Deep Research"
+            }
+
             switch message.role {
             case .user:
-                return "User: \(message.text)"
+                let imageContext = message.hasImage ? ", included an image" : ""
+                return "User [\(modeLabel)\(imageContext)]: \(message.text)"
             case .assistant:
-                return "Assistant: \(message.text)"
+                return "Assistant [\(modeLabel)]: \(message.text)"
             }
         }.joined(separator: "\n\n")
     }
 
-    private func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        synthesizer.speak(utterance)
-    }
 }
+
+
 
 #Preview {
     ContentView()

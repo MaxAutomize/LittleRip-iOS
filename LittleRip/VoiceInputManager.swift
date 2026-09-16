@@ -63,7 +63,7 @@ final class VoiceInputManager: ObservableObject {
             audioEngine.prepare()
             try audioEngine.start()
             isListening = true
-            authorizationMessage = "Listening… tap again when done."
+            authorizationMessage = "Listening… tap the red stop button when you are done."
 
             recognitionTask = recognizer?.recognitionTask(with: request) { [weak self] result, error in
                 Task { @MainActor in
