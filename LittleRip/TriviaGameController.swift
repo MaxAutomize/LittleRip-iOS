@@ -59,7 +59,8 @@ final class TriviaGameController: ObservableObject {
 
     private let provider: any TriviaQuestionProviding
     private let defaults: UserDefaults
-    private let bestScoreKey = "littlerip.trivia.best-score.v1"
+    private let bestScoreKey = "littlerip.trivia.best-score.v2"
+    private let legacyBestScoreKey = "littlerip.trivia.best-score.v1"
     private let timeLimitOverride: ((Int) -> Int)?
     /// DispatchTime is monotonic and is not affected by wall-clock changes or
     /// an app being suspended. The closure is injectable for deterministic tests.
@@ -83,6 +84,7 @@ final class TriviaGameController: ObservableObject {
         self.defaults = defaults
         self.timeLimitOverride = timeLimitOverride
         self.monotonicNow = monotonicNow
+        defaults.removeObject(forKey: legacyBestScoreKey)
         self.bestScore = min(TriviaGameRules.maxScore, max(0, defaults.integer(forKey: bestScoreKey)))
     }
 
