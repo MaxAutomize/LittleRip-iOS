@@ -22,9 +22,28 @@ struct TriviaQuestionPrompt {
 
     Generate this question directly from the full space of knowledge. Do not first consult, construct, rotate or imitate a finite hidden list. It can be elementary, profound, conceptual, mathematical, natural, psychological, computational, symbolic or something else entirely. Do not force a type. Reject stock pop-science explainers, generic common sense, school-definition questions, arbitrary trivia dates, product facts, business advice, institutional procedure, invented car/factory scenarios, and exhausted “why do astronauts feel weightless?” explanations. Do not replace a cliché with another cliché.
 
-    Across play, numbers and natural structure should appear often but unpredictably: quantities, ratios, powers, probability, scale, time, geometry, constants, equations and short derivations. Use numbers because they reveal something, not as decoration or date recall. Supply units, premises and honest rounding. A short calculation or inference may feel like an intelligence test, but it must have one determined answer and never claim to measure IQ. There is no increasing difficulty: every round can be elementary, profound, conceptual or mathematical. Score and consecutive wins are the only progression.
+    EXPLICIT QUESTION DNA — DERIVE FROM THESE, DO NOT CYCLE THEM:
+    - What came first: plants or insects?
+    - Are insects animals?
+    - How many human species have existed?
+    - What causes aging and death at the cellular level?
+    - Why can turtles live so much longer than flies?
+    - What evidence has a government actually confirmed regarding UFOs?
+    - What may have caused the Younger Dryas?
+    - How long have modern humans existed?
+    - What does the inscription on the dollar actually say, and where did it come from?
+    - What is an alternative explanation for accelerating cosmic expansion?
+    - What is the speed of light?
+    - What is a tensor?
+    - What is the simplest description of a neural network’s reward function?
+    - What is human will or motivation made of?
+    - What do Apollo and Dionysus represent in The Birth of Tragedy?
+    - Short calculus, trigonometry, binary-logic and fundamental-science questions.
+    These are the player's explicit interests and examples of the desired level. Derive many new questions from their underlying relationships, but do not repeat these exact questions or form a ten-topic rotation. Keep the surrounding universe open: foundational history, life, evolution, civilization, mind, language, mathematics and general knowledge remain equally eligible.
 
-    Truth should be strong and usable without pedantry. Do not turn a hypothesis, interpretation, unexplained observation or contested clinical claim into settled fact. Use non-stigmatizing language around psychosis, mania and other illness; ask about distinctions and mechanisms, never diagnose a person. Wrong choices should be real confusions, not jokes.
+    Across play, use numbers and natural structure when they reveal something: quantities, ratios, powers, probability, scale, time, geometry, constants, equations and short derivations. Do not make every question an equation. A short calculation or inference may feel like an intelligence test, but it must have one determined answer and never claim to measure IQ. There is no increasing difficulty: every round can be elementary, profound, conceptual or mathematical. Score and consecutive wins are the only progression.
+
+    Truth should be strong and usable without pedantry. Established facts are ideal. A claim does not need absolute philosophical certainty: a well-supported majority scientific view or leading scientific hypothesis is acceptable when the wording clearly labels it as such. Do not present a contested hypothesis, interpretation, unexplained observation or minority claim as settled fact. Use non-stigmatizing language around psychosis, mania and other illness; ask about distinctions and mechanisms, never diagnose a person. Wrong choices should be real confusions, not jokes.
 
     Return exactly one freshly generated question. The question must be under 240 characters. Each answer must be a tiny word, phrase, number or equation, at most 7 words and 60 characters. Exactly one answer is correct. Explanation is 1–2 short sentences. Return plain JSON only, no Markdown and no reasoning transcript.
     """
@@ -37,7 +56,7 @@ struct TriviaQuestionPrompt {
         """
         Generate one question from the full universe of knowledge. There is no round tier, assigned subject, topic menu or memory block. The timer is \(blueprint.timeLimit) seconds.
         FRESH DEPARTURE POINT: \(departurePoint)
-        This is not a requested topic, a question bank entry or an answer. Use it only to break the usual high-probability groove: make a surprising conceptual or quantitative leap from it, or let it provoke a different region of knowledge. Do not ask a shallow “what is [departure point]?” definition. The final question must stand on its own.
+        This is not a requested topic, a question bank entry or an answer. Use it only to break the usual high-probability groove: make a surprising conceptual or quantitative leap from it, or let it provoke a different region of knowledge. Do not ask a shallow “what is [departure point]?” definition. The final question must stand on its own. Explicit player interests above are also DNA, not a fixed rotation: derive beyond them.
         Choose the subject yourself and generate it directly. Do not describe candidate generation or deliberation.
         Make four short answers. Check the answer, units and arithmetic silently. Invent a short free-form concept label for display only; it is not stored or used to select future questions.
         \(retryReason.map { "RETRY: \($0) Return a new question generated from a different idea." } ?? "")
