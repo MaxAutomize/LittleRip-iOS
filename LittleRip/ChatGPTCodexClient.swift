@@ -12,6 +12,7 @@ enum ChatGPTReplyMode {
     case wiki
     case wikiPlanning
     case assistantActionPlanning
+    case trivia
 }
 
 enum ChatGPTCodexError: LocalizedError {
@@ -32,13 +33,13 @@ enum ChatGPTCodexError: LocalizedError {
         case .missingAccountID:
             return "The ChatGPT login did not include an account ID."
         case .emptyResponse:
-            return "GPT-5.6 Terra returned an empty response."
+            return "GPT-5.6 Luna returned an empty response."
         }
     }
 }
 
 @MainActor
-final class ChatGPTCodexClient: ObservableObject {
+final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
     @Published private(set) var isAuthenticated = false
     @Published private(set) var isSigningIn = false
     @Published private(set) var deviceCode: String?
@@ -218,11 +219,73 @@ final class ChatGPTCodexClient: ObservableObject {
         return Self.parseAssistantActionPlan(from: response.answer)
     }
 
+    /// Generates a question through the authenticated Luna request path. Invalid
+    /// model payloads get a bounded retry; auth/network failures are surfaced to
+    /// the game as retryable errors and never count as an answer.
+    func generateTriviaQuestion(
+        difficulty: TriviaDifficulty,
+        answeredCount: Int,
+        excludedFingerprints: Set<String>
+    ) async throws -> TriviaQuestion {
+        let difficultyPrompt = difficulty.title.uppercased()
+        let excluded = excludedFingerprints.isEmpty
+            ? "none"
+            : excludedFingerprints.prefix(12).joined(separator: " | ")
+        var lastValidationError: TriviaQuestionValidationError = .malformedJSON
+
+        for attempt in 0..<3 {
+            let prompt = """
+            Generate exactly one LittleRip physics-and-mathematics trivia question.
+            Requested tier: \(difficulty.rawValue) (\(difficultyPrompt)). Questions answered in this run: \(answeredCount).
+            Never repeat any prior question fingerprint listed here: \(excluded)
+            This is a progressive run. For warmup, make the idea genuinely simple
+            enough to answer in seconds (small arithmetic, a basic unit, a direct
+            observation, or the simplest form of a fundamental equation). Increase
+            difficulty only as the answered count and tier increase.
+            Favor grounded first principles: equations, energy, probability,
+            geometry, information, intelligence, physical laws, and their profound
+            implications. Thematic references may include Einstein, Ilya Sutskever,
+            Schopenhauer, Elon Musk, Sam Altman, Freemasonry geometry/history, or
+            Peter Thiel only as intellectual context—not celebrity trivia,
+            impersonation, conspiracy, or personality claims.
+            Include some "derive the equation" questions, but make those ask the
+            player to select the correct derivation step or equation; never ask for
+            typed input. Avoid claims that require current events or an authority's
+            opinion. Do not promise that an AI-generated claim is certainly true.
+
+            Return ONLY this JSON object, with no Markdown or prose before/after it:
+            {"id":"stable-short-id","question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"brief reason","implication":"one grounded implication","difficulty":"\(difficulty.rawValue)"}
+            The choices must be exactly four, mutually distinct, plausible, and
+            concise. correctIndex is zero-based. explanation and implication are
+            brief and readable. Use plain Unicode math, not LaTeX.
+            """
+
+            let response = try await ask(prompt: prompt, mode: .trivia)
+            do {
+                let question = try TriviaQuestionParser.parse(
+                    response.answer,
+                    expectedDifficulty: difficulty
+                )
+                guard !excludedFingerprints.contains(question.fingerprint) else {
+                    lastValidationError = .duplicateQuestion
+                    if attempt < 2 { continue }
+                    throw lastValidationError
+                }
+                return question
+            } catch let validationError as TriviaQuestionValidationError {
+                lastValidationError = validationError
+                if attempt == 2 { throw validationError }
+            }
+        }
+
+        throw lastValidationError
+    }
+
     func ask(
         prompt: String,
         history: String = "",
         image: UIImage? = nil,
-        mode: ChatGPTReplyMode,
+        mode: ChatGPTReplyMode, 
         sources: [WebSearchResult] = [],
         liveLookupContext: String? = nil,
         requestedReasoningEffort: String? = nil
@@ -232,7 +295,7 @@ final class ChatGPTCodexClient: ObservableObject {
         switch mode {
         case .quick:
             systemPrompt = """
-            You are LittleRip, powered by ChatGPT GPT-5.6 Terra. If asked which model powers you, say GPT-5.6 Terra. Never claim to be GLM, Ollama, Qwen, or another model.
+            You are LittleRip, powered by ChatGPT GPT-5.6 Luna. If asked which model powers you, say GPT-5.6 Luna. Never claim to be GLM, Ollama, Qwen, or another model.
 
             You are a helpful assistant in a back-and-forth text conversation. Reply naturally and directly to the user's latest message, using the session context for follow-ups. Handle mathematics directly in this normal conversation mode. Write math in readable OmniScript-style plain Unicode: use symbols such as ×, ÷, √, π, ≈, ≤, ≥, superscripts, and clear one-line equations. Never emit LaTeX commands, dollar-sign delimiters, or code blocks for ordinary math.
 
@@ -242,7 +305,7 @@ final class ChatGPTCodexClient: ObservableObject {
             """
         case .wiki:
             systemPrompt = """
-            You are LittleRip, powered by ChatGPT GPT-5.6 Terra. If asked which model powers you, say GPT-5.6 Terra. Never claim to be GLM, Ollama, Qwen, or another model.
+            You are LittleRip, powered by ChatGPT GPT-5.6 Luna. If asked which model powers you, say GPT-5.6 Luna. Never claim to be GLM, Ollama, Qwen, or another model.
 
             Give a concise, well-structured explanation grounded in the supplied Wikipedia article excerpts. These are not raw keyword-search results: a separate semantic research pass chose the articles to explain the user's entire idea. Read the excerpts before answering. Treat the first article as the most directly useful source and later articles as supporting mechanisms, context, or prerequisites. Do not echo the user's question as a search phrase and do not say "here are the search results." The app lists the verified, tappable Wikipedia links separately below your answer.
 
@@ -288,6 +351,15 @@ final class ChatGPTCodexClient: ObservableObject {
 
             Resolve notification dates from the supplied current local date, time, and time zone. Treat “at 3” or “at 3:15” as the next future 3:00:00 or 3:15:00 in local time; always include seconds and use 00 unless explicitly supplied. The action must be none unless the request is direct.
             """
+        case .trivia:
+            systemPrompt = """
+            You are GPT-5.6 Luna generating one self-contained LittleRip physics
+            and mathematics game question. Follow the exact JSON contract in the
+            user prompt. Never answer with prose, Markdown, a code fence, or a
+            second question. Keep facts grounded in standard mathematics and
+            physics; an AI-generated explanation is educational context, not a
+            guarantee of factual correctness.
+            """
         }
 
         let historyContext = history.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : """
@@ -316,14 +388,14 @@ final class ChatGPTCodexClient: ObservableObject {
         switch mode {
         case .wikiPlanning:
             reasoningEffort = "high"
-        case .quick, .wiki, .assistantActionPlanning:
+        case .quick, .wiki, .assistantActionPlanning, .trivia:
             reasoningEffort = "medium"
         }
         if let requestedReasoningEffort {
             reasoningEffort = requestedReasoningEffort
         }
         let body: [String: Any] = [
-            "model": "gpt-5.6-terra",
+            "model": "gpt-5.6-luna",
             "store": false,
             "stream": true,
             "instructions": systemPrompt + "\nUse plain text and never wrap text in double asterisks.",
@@ -400,14 +472,14 @@ final class ChatGPTCodexClient: ObservableObject {
             case "response.completed", "response.done":
                 completed = true
             case "response.incomplete":
-                throw ChatGPTCodexError.invalidResponse("GPT-5.6 Terra stopped before completing its response.")
+                throw ChatGPTCodexError.invalidResponse("GPT-5.6 Luna stopped before completing its response.")
             case "response.failed":
                 let response = event["response"] as? [String: Any]
                 let error = response?["error"] as? [String: Any]
-                let message = error?["message"] as? String ?? "GPT-5.6 Terra request failed."
+                let message = error?["message"] as? String ?? "GPT-5.6 Luna request failed."
                 throw ChatGPTCodexError.invalidResponse(message)
             case "error":
-                let message = event["message"] as? String ?? "GPT-5.6 Terra request failed."
+                let message = event["message"] as? String ?? "GPT-5.6 Luna request failed."
                 throw ChatGPTCodexError.invalidResponse(message)
             default:
                 break

@@ -8,12 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		05D51B2B8D73F9B9EE40ACD9 /* HackerNewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DCCF23E04211C3BFB91B3BD /* HackerNewsService.swift */; };
+		071E43FA48BE6F761C6B508A /* TriviaGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE62C61C89A287DF6D08708 /* TriviaGameModel.swift */; };
 		0E2AB84E5CC7C3CA2B64ED19 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1AE2166D2A10B45AFD711C9A /* Assets.xcassets */; };
 		1566185856F4259DD3FAA33A /* LittleRipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898D024CFCCC0375758B93FA /* LittleRipApp.swift */; };
 		4C07CB33A7D9F05BA132EDC4 /* UnlockFrontDoorIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */; };
 		51F5102D8C209A0FB6C0DB49 /* AssistantActionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA6E58C059EF7C7DDE64042 /* AssistantActionService.swift */; };
 		5C3DE01632B431F06C1D88A9 /* LittleRipWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE14C924A0FDD00983D3DC3A /* LittleRipWidget.swift */; };
 		64EF0A1C1D37E5A54BA4C614 /* SmartRentClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B9103F03D659C17B6367AE3 /* SmartRentClient.swift */; };
+		6931E1C4EAAE62FAA3C2E41C /* TriviaGameController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92F41677AA6CFF8713F2E088 /* TriviaGameController.swift */; };
 		77C64C39FBFCBC99F361167C /* UnlockFrontDoorIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */; };
 		798062733F814AFD84FD0BEA /* MessageComposeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204E14A5B9C9BFF1A23B43B5 /* MessageComposeService.swift */; };
 		7B6858A25DB825955410FDBB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CC7E630EF66A1853978FC60E /* Assets.xcassets */; };
@@ -59,6 +61,7 @@
 		204E14A5B9C9BFF1A23B43B5 /* MessageComposeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageComposeService.swift; sourceTree = "<group>"; };
 		35D1EA24E1F4044CCF87C6CC /* LittleRipWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LittleRipWidgetExtension.entitlements; sourceTree = "<group>"; };
 		390AF2B74FCACD9736686BB9 /* LittleRipWidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = LittleRipWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3BE62C61C89A287DF6D08708 /* TriviaGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriviaGameModel.swift; sourceTree = "<group>"; };
 		3E895BAFC8CDCF8E284FB4ED /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3F7B67EE7EC825F5FE56FDA4 /* ChatGPTCodexClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatGPTCodexClient.swift; sourceTree = "<group>"; };
 		43A3F173DF083E9E5A56A4CB /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
@@ -68,6 +71,7 @@
 		7EDC821BFAF1718275586159 /* StartVoiceAssistantIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVoiceAssistantIntent.swift; sourceTree = "<group>"; };
 		8676649E91364A8825D554A3 /* LittleRip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LittleRip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		898D024CFCCC0375758B93FA /* LittleRipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LittleRipApp.swift; sourceTree = "<group>"; };
+		92F41677AA6CFF8713F2E088 /* TriviaGameController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriviaGameController.swift; sourceTree = "<group>"; };
 		ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockFrontDoorIntent.swift; sourceTree = "<group>"; };
 		CC7E630EF66A1853978FC60E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DE14C924A0FDD00983D3DC3A /* LittleRipWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LittleRipWidget.swift; sourceTree = "<group>"; };
@@ -109,6 +113,8 @@
 				898D024CFCCC0375758B93FA /* LittleRipApp.swift */,
 				43A3F173DF083E9E5A56A4CB /* LocationService.swift */,
 				204E14A5B9C9BFF1A23B43B5 /* MessageComposeService.swift */,
+				92F41677AA6CFF8713F2E088 /* TriviaGameController.swift */,
+				3BE62C61C89A287DF6D08708 /* TriviaGameModel.swift */,
 				522245F8739EEB42361AF721 /* VoiceInputManager.swift */,
 				F726F4174CAC055A3FB892EF /* WebSearchClient.swift */,
 			);
@@ -258,6 +264,8 @@
 				798062733F814AFD84FD0BEA /* MessageComposeService.swift in Sources */,
 				64EF0A1C1D37E5A54BA4C614 /* SmartRentClient.swift in Sources */,
 				AA69D98912F9783B84C18F7A /* StartVoiceAssistantIntent.swift in Sources */,
+				6931E1C4EAAE62FAA3C2E41C /* TriviaGameController.swift in Sources */,
+				071E43FA48BE6F761C6B508A /* TriviaGameModel.swift in Sources */,
 				4C07CB33A7D9F05BA132EDC4 /* UnlockFrontDoorIntent.swift in Sources */,
 				B75C7F101E29DBC36DF1BC2A /* VoiceInputManager.swift in Sources */,
 				9C6F9D17CA47C30597ED70A5 /* WebSearchClient.swift in Sources */,
@@ -284,10 +292,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSContactsUsageDescription = "LittleRip uses Contacts only when you ask it to prepare a message to someone.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "LittleRip uses your location to look up current local weather and other location-aware information when you ask.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LittleRip uses the microphone so you can speak to your AI assistant.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "LittleRip creates and manages reminders when you ask it to.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "LittleRip uses speech recognition to turn your voice into prompts for the AI assistant.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -379,10 +384,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSContactsUsageDescription = "LittleRip uses Contacts only when you ask it to prepare a message to someone.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "LittleRip uses your location to look up current local weather and other location-aware information when you ask.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LittleRip uses the microphone so you can speak to your AI assistant.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "LittleRip creates and manages reminders when you ask it to.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "LittleRip uses speech recognition to turn your voice into prompts for the AI assistant.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

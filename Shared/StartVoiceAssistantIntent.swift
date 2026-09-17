@@ -1,15 +1,16 @@
 import AppIntents
 import Foundation
 
+/// Kept under the existing type name so installed widget configurations remain
+/// valid; it now starts a Luna trivia run and never touches the microphone.
 struct StartVoiceAssistantIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open LittleRip"
-    static var description = IntentDescription("Opens LittleRip. Use the microphone button when you want to speak.")
+    static var title: LocalizedStringResource = "New Game"
+    static var description = IntentDescription("Open LittleRip and start a Luna physics and mathematics trivia game.")
     static var openAppWhenRun = true
     static var authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
 
     func perform() async throws -> some IntentResult {
-        // Lock Screen widgets may open the app, but never begin microphone recording automatically.
-        UserDefaults(suiteName: "group.com.maxautomize.LittleRip")?.removeObject(forKey: "littlerip.startVoice")
+        UserDefaults(suiteName: "group.com.maxautomize.LittleRip")?.set(true, forKey: "littlerip.startNewGame")
         return .result()
     }
 }

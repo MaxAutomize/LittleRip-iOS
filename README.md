@@ -1,53 +1,51 @@
 # LittleRip for iOS
 
-LittleRip is a personal iOS app with two parts:
+LittleRip is a polished physics-and-mathematics trivia game built around the existing chrome/silver/black/white robot and green-eye visual language. Questions are generated dynamically by the user's authenticated ChatGPT account through **GPT-5.6 Luna**.
 
-1. **LittleRip AI assistant** — a Siri-like text/voice assistant powered by the user's authenticated ChatGPT account.
-2. **SmartRent door widget** — a preserved Control Widget that unlocks the SmartRent front door without opening the app.
+## Game loop
 
-## Current app experience
+- Home has one primary **New Game** action. Settings and SmartRent unlock remain available from the secondary controls.
+- Luna returns one strictly validated JSON question with exactly four unique answer choices, one correct index, a short explanation, and a grounded implication. Choices are shuffled on-device while preserving the correct answer.
+- Runs progress from genuinely simple **Warm-up** questions through Foundation, Application, Systems, and Frontier tiers. The prompt emphasizes mathematical/physical first principles, energy, probability, geometry, information, intelligence, fundamental equations, and implications—not celebrity trivia or impersonation. “Derive the equation” prompts use selectable derivation steps/equations rather than text entry.
+- Correct answers show a short readable explanation, then automatically load the next question. Wrong answers and time expiration end the run and reveal the correct answer, explanation, implication, score, and **New Game**.
+- Network, authentication, cancellation, or malformed/invalid Luna responses are retryable generation errors, never wrong answers and never score penalties. Malformed model payloads are retried up to three times.
 
-- Chrome / black / white robot branding with green robot eyes.
-- Text and voice input.
-- Responses are structured with `DEFINITION`, `EXPLANATION`, `ANALOGY`, and `FIRST PRINCIPLES` sections.
-- Wikipedia source cards are labeled **Wiki**.
-- Wiki articles are selected semantically using the current prompt plus recent in-session context, so vague follow-ups like “what about him?” still choose relevant articles.
-- Chat context is session-only: it survives while the app is open, but resets when the app is killed/restarted.
-- Model audio is not spoken aloud automatically.
-- Response text is selectable.
+## Scoring and timer
 
-## SmartRent widget
+- The first correct answer earns 100 points. Each consecutive correct answer doubles the next reward: 100, 200, 400, 800, … . Scores and additions saturate at 10,000,000 so arithmetic cannot overflow.
+- A miss resets the streak. Best score is stored in `UserDefaults` and survives relaunches.
+- Each tier has a longer base thinking window for harder questions (24/29/36/44/54 seconds). A bounded answered-count pressure term gradually tightens the window within a tier, never below 18 seconds. The timer starts only after a valid question is installed; it uses a monotonic clock, cancels on answer, and serializes answer/timeout transitions to prevent races, duplicate taps, and background-clock exploits.
+- The HUD shows current score, best score, streak, answered count, difficulty, timer, and the next reward.
 
-The door unlock flow remains independent of the AI assistant:
+## Account and SmartRent
 
-- **`Shared/SmartRentClient.swift`** — talks to the SmartRent API: logs in, finds the front-door `entry_control` lock, and sends the unlock command over the Phoenix websocket.
-- **`Shared/UnlockFrontDoorIntent.swift`** — `AppIntent` used by the widget.
-- **`LittleRipWidgetExtension/`** — Control Widget for one-tap unlock.
+ChatGPT device login, Keychain credential storage, refresh, sign-out, and security behavior remain in `ChatGPTCodexClient.swift`; no authentication values are logged. The app no longer requests microphone or location access for the game. The old voice launcher is coherently repurposed as a New Game launcher and never starts a microphone.
 
-SmartRent credentials are stored in the shared App Group user defaults by the app. No credentials are committed.
+The SmartRent door flow remains independent and unchanged:
 
-## AI / Wiki files
+- **`Shared/SmartRentClient.swift`** logs in, finds the front-door `entry_control` lock, and sends the unlock command over the Phoenix websocket.
+- **`Shared/UnlockFrontDoorIntent.swift`** powers the one-tap Control Widget unlock.
+- SmartRent credentials remain local/shared App Group values and are never committed.
+- The existing voice widget/control identifiers are retained so installed configurations update in place; they now open a Luna New Game. The SmartRent unlock control remains separate.
 
-- **`LittleRip/ChatGPTCodexClient.swift`** — authenticated ChatGPT conversation, Wiki planning, and notification intent planning.
-- **`LittleRip/WebSearchClient.swift`** — verified Wikipedia article retrieval and Wiki card fetching.
-- **`LittleRip/AssistantActionService.swift`** — branded, Time Sensitive local notifications.
-- **`LittleRip/VoiceInputManager.swift`** — Apple speech recognizer / microphone handling.
-- **`LittleRip/ContentView.swift`** — assistant UI, selectable text, session context, Wiki cards, and keyboard behavior.
+## Source layout
+
+- **`LittleRip/TriviaGameModel.swift`** — typed question contract, bounded JSON/wrapper parsing, validation, shuffle, difficulty, timer, and saturating score rules.
+- **`LittleRip/TriviaGameController.swift`** — main-actor game state machine, generation cancellation/stale-result guards, monotonic timer, persistence, feedback, and retry behavior.
+- **`LittleRip/ChatGPTCodexClient.swift`** — existing authenticated ChatGPT client, now using `gpt-5.6-luna` and the strict trivia generation contract.
+- **`LittleRip/ContentView.swift`** — SwiftUI game experience and preserved account/SmartRent settings access.
+- **`LittleRipWidgetExtension/`** — New Game launcher plus preserved SmartRent unlock Control Widget.
+- **`tests/TriviaCoreTests.swift`** — deterministic standalone regression harness for game rules, parsing, shuffle, state transitions, retry, cancellation, timeout, and persistence.
+
+AI-generated explanations are educational context, not a guarantee of factual correctness; verify surprising claims independently.
 
 ## Manual iOS reset
 
-These apps use a free Apple Developer account, so Apple-controlled provisioning profiles may expire after about 7 days. Say **“reset the iOS app”** in Pi to call `littlerip_ios_reset` once. That single foreground transaction:
+These apps use a free Apple Developer account, so Apple-controlled provisioning profiles may expire after about 7 days. Say **“reset the iOS app”** in Pi to call `littlerip_ios_reset` once. That single foreground transaction checks the paired iPhone and Xcode Apple Account without attempting sign-in, passwords, or 2FA, quarantines only cached LittleRip profiles, regenerates and signs the app/widget in isolated DerivedData, verifies both embedded profiles and exact expiration timestamps plus code signatures, installs in place without uninstalling or wiping data, and launches it with `devicectl`.
 
-- checks the paired iPhone and Xcode Apple Account without attempting sign-in, passwords, or 2FA;
-- quarantines only cached LittleRip profiles, regenerates and signs the app/widget in isolated DerivedData;
-- verifies both embedded profiles and their exact expiration timestamps plus code signatures;
-- installs the app in place (no uninstall or data wipe) and launches it with `devicectl`.
+The tool reports the actual embedded profile expiration for both targets. Apple may issue a shorter-lived profile, so no seven-day guarantee is made. There is no launchd, cron, login, or periodic refresh job. `refresh.sh` is only a manual compatibility wrapper around `scripts/littlerip-ios-reset.sh`; local device/team overrides live in the gitignored `local-env.sh`.
 
-The tool reports the actual embedded profile expiration for both the app and widget. Apple may reuse a shorter-lived profile, so the tool does **not** promise seven days. If Xcode needs sign-in, the iPhone is locked/disconnected, or trust is required, it stops with an actionable error. There is no launchd, cron, login, or periodic refresh job.
-
-`refresh.sh` remains only as a manual compatibility wrapper around `scripts/littlerip-ios-reset.sh`; it never schedules itself. Local device/team overrides live in the gitignored `local-env.sh`.
-
-## Building
+## Building and tests
 
 Requires [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
@@ -55,6 +53,9 @@ Requires [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 xcodegen generate
 xcodebuild -project LittleRip.xcodeproj -scheme LittleRip \
   -destination 'generic/platform=iOS' -allowProvisioningUpdates build
+
+swiftc LittleRip/TriviaGameModel.swift LittleRip/TriviaGameController.swift tests/TriviaCoreTests.swift \
+  -o /tmp/littlerip-trivia-tests && /tmp/littlerip-trivia-tests
 ```
 
 ## Configuration
@@ -62,5 +63,5 @@ xcodebuild -project LittleRip.xcodeproj -scheme LittleRip \
 - **Bundle ID:** `com.maxautomize.LittleRip`
 - **Widget bundle ID:** `com.maxautomize.LittleRip.LittleRipWidgetExtension`
 - **App Group:** `group.com.maxautomize.LittleRip`
-- **AI connection:** authenticated ChatGPT account
-- **SmartRent credentials:** local/shared user defaults only
+- **AI connection:** existing authenticated ChatGPT account, model `gpt-5.6-luna`
+- **SmartRent credentials:** local/shared App Group values only

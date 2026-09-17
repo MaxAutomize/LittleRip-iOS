@@ -11,8 +11,8 @@ final class LittleRipAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
         center.delegate = self
         LittleRipNotificationDesign.configureCategories()
 
-        // Ask on the first app launch instead of waiting until the user's first
-        // scheduled notification. iOS only presents this system dialog once.
+        // Preserve the existing notification behavior for the account/settings
+        // surface. The trivia game itself never requests microphone or location access.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             Task {
                 let settings = await center.notificationSettings()

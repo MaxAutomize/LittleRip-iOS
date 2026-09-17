@@ -2,31 +2,31 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-struct LittleRipVoiceEntry: TimelineEntry {
+struct LittleRipGameEntry: TimelineEntry {
     let date: Date
 }
 
-struct LittleRipVoiceProvider: TimelineProvider {
-    func placeholder(in context: Context) -> LittleRipVoiceEntry { LittleRipVoiceEntry(date: .now) }
-    func getSnapshot(in context: Context, completion: @escaping (LittleRipVoiceEntry) -> Void) {
-        completion(LittleRipVoiceEntry(date: .now))
+struct LittleRipGameProvider: TimelineProvider {
+    func placeholder(in context: Context) -> LittleRipGameEntry { LittleRipGameEntry(date: .now) }
+    func getSnapshot(in context: Context, completion: @escaping (LittleRipGameEntry) -> Void) {
+        completion(LittleRipGameEntry(date: .now))
     }
-    func getTimeline(in context: Context, completion: @escaping (Timeline<LittleRipVoiceEntry>) -> Void) {
-        completion(Timeline(entries: [LittleRipVoiceEntry(date: .now)], policy: .never))
+    func getTimeline(in context: Context, completion: @escaping (Timeline<LittleRipGameEntry>) -> Void) {
+        completion(Timeline(entries: [LittleRipGameEntry(date: .now)], policy: .never))
     }
 }
 
-struct LittleRipVoiceWidgetView: View {
+struct LittleRipGameWidgetView: View {
     @Environment(\.widgetFamily) private var family
 
     var body: some View {
         Button(intent: StartVoiceAssistantIntent()) {
             if family == .systemSmall {
-                VStack(spacing: 8) {
+                VStack(spacing: 7) {
                     Image("LittleRipWidgetRobot")
                         .resizable()
                         .scaledToFit()
-                    Text("Talk to LittleRip")
+                    Text("New Game")
                         .font(.headline)
                         .foregroundStyle(.black)
                 }
@@ -38,31 +38,33 @@ struct LittleRipVoiceWidgetView: View {
                     .padding(2)
             }
         }
+        .accessibilityLabel("New Luna trivia game")
     }
 }
 
-/// A tappable Lock Screen widget. It opens LittleRip; voice starts only from the in-app microphone button.
-struct LittleRipVoiceWidget: Widget {
+/// Existing widget identifiers are retained so the installed widget updates in
+/// place, while the old voice entry is now a no-microphone New Game launcher.
+struct LittleRipGameWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "LittleRipVoiceWidget", provider: LittleRipVoiceProvider()) { _ in
-            LittleRipVoiceWidgetView()
+        StaticConfiguration(kind: "LittleRipVoiceWidget", provider: LittleRipGameProvider()) { _ in
+            LittleRipGameWidgetView()
                 .containerBackground(for: .widget) { Color.clear }
         }
-        .configurationDisplayName("Talk to LittleRip")
-        .description("Tap the LittleRip robot to open the app.")
+        .configurationDisplayName("New Game")
+        .description("Open LittleRip and start a Luna physics and mathematics trivia run.")
         .supportedFamilies([.accessoryCircular, .accessoryRectangular, .systemSmall])
     }
 }
 
-struct LittleRipVoiceControl: ControlWidget {
+struct LittleRipGameControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "LittleRipVoiceControl") {
             ControlWidgetButton(action: StartVoiceAssistantIntent()) {
-                Label("Talk to LittleRip", systemImage: "waveform")
+                Label("New Game", systemImage: "sparkles")
             }
         }
-        .displayName("Talk to LittleRip")
-        .description("Open LittleRip from Control Center or the Lock Screen.")
+        .displayName("New Game")
+        .description("Open LittleRip and start a Luna trivia run.")
     }
 }
 
@@ -81,8 +83,8 @@ struct LittleRipControl: ControlWidget {
 @main
 struct LittleRipWidgetBundle: WidgetBundle {
     var body: some Widget {
-        LittleRipVoiceWidget()
-        LittleRipVoiceControl()
+        LittleRipGameWidget()
+        LittleRipGameControl()
         LittleRipControl()
     }
 }
