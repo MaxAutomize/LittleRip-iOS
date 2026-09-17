@@ -12,7 +12,7 @@ struct TriviaQuestionBlueprint: Equatable, Sendable {
 
 struct TriviaQuestionPrompt {
     static let system = """
-    LittleRip is a live game for a person waking with amnesia and trying to understand what this is, what is going on, what happened, and how long it has been. It is a compressed canon of reality, not a trivia-night deck, question bank or lesson plan.
+    LittleRip is a live game for a person waking with amnesia and trying to understand what this is, what is going on, what happened, and how long it has been. It is a compressed canon of reality and human knowledge, not a trivia-night deck, question bank or lesson plan.
 
     There is no fixed topic list, category rotation, difficulty ladder, example bank, recent-memory list, entropy list or preferred handful of concepts. Choose freely from the entire universe of possible knowledge. The next subject is not selected by the app and must not be predictable from the previous subject. There is no finite canon to exhaust and no local memory to consult.
 
@@ -20,9 +20,11 @@ struct TriviaQuestionPrompt {
 
     Use Nietzsche's The Birth of Tragedy as an editorial tension, not a subject list or doctrine: Apollo is form, measure, image and intelligibility; Dionysus is force, flux, instinct, suffering and dissolution. Let questions sometimes reveal order inside change or change beneath apparent order, without mentioning Nietzsche unless the question is actually about him. Sutskever, Schopenhauer, Musk, Altman, Thiel and documented Masonic symbolism are optional tonal touchstones only; never impersonate them, ask their biographies, or treat their names as authorities.
 
-    Generate this question directly from the full space of knowledge. Do not first consult, construct, rotate or imitate a finite hidden list. It can be elementary, profound, conceptual, mathematical, natural, psychological, computational, symbolic or something else entirely. Do not force a type. Reject stock pop-science explainers, generic common sense, school-definition questions, arbitrary trivia dates, product facts, business advice, institutional procedure, invented car/factory scenarios, and exhausted “why do astronauts feel weightless?” explanations. Do not replace a cliché with another cliché.
+    Generate this question directly from the full space of knowledge. Do not first consult, construct, rotate or imitate a finite hidden list. The full space includes the fundamentals of human history and civilization, life and evolution, the living world, Earth, ordinary physical reality, mind and illness, language and symbols, mathematics, computation and AI, as well as the wider cosmos. None is a side category and none is the default. Do not force a type. Reject stock pop-science explainers, generic common sense, school-definition questions, arbitrary trivia dates, product facts, business advice, institutional procedure, invented car/factory scenarios, and exhausted “why do astronauts feel weightless?” explanations. Do not replace a cliché with another cliché.
 
-    Across play, numbers and natural structure should appear often but unpredictably: quantities, ratios, powers, probability, scale, time, geometry, constants, equations and short derivations. Use numbers because they reveal something, not as decoration or date recall. Supply units, premises and honest rounding. A short calculation or inference may feel like an intelligence test, but it must have one determined answer and never claim to measure IQ. There is no increasing difficulty: every round can be elementary, profound, conceptual or mathematical. Score and consecutive wins are the only progression.
+    Keep the game grounded in the fundamentals a person needs to orient themselves: what happened before us, how life changes, how organisms work, how civilizations form and fail, what minds do, how language and symbols carry reality, and what the simplest mathematics reveals. A question about astronomy or a physics equation is welcome only when it earns its place by revealing something fundamental; do not let the words “reality” or “natural structure” turn every request into cosmology. Let history, life and general knowledge be as likely as physics, without using a visible rotation or quota.
+
+    Use numbers, quantities, ratios, powers, probability, scale, time, geometry, constants, equations and short derivations when they reveal structure—not as decoration, date recall or a compulsory identity. Supply units, premises and honest rounding. A short calculation or inference may feel like an intelligence test, but it must have one determined answer and never claim to measure IQ. There is no increasing difficulty: every round can be elementary, profound, conceptual or mathematical. Score and consecutive wins are the only progression.
 
     Truth should be strong and usable without pedantry. Do not turn a hypothesis, interpretation, unexplained observation or contested clinical claim into settled fact. Use non-stigmatizing language around psychosis, mania and other illness; ask about distinctions and mechanisms, never diagnose a person. Wrong choices should be real confusions, not jokes.
 
@@ -35,7 +37,7 @@ struct TriviaQuestionPrompt {
         retryReason: String? = nil
     ) -> String {
         """
-        Generate one question from the full universe of knowledge. There is no round tier, assigned subject, topic menu or memory block. The timer is \(blueprint.timeLimit) seconds.
+        Generate one question from the full universe of knowledge and fundamentals of human history, life and general knowledge as well as science and mathematics. There is no round tier, assigned subject, topic menu or memory block. The timer is \(blueprint.timeLimit) seconds.
         FRESH DEPARTURE POINT: \(departurePoint)
         This is not a requested topic, a question bank entry or an answer. Use it only to break the usual high-probability groove: make a surprising conceptual or quantitative leap from it, or let it provoke a different region of knowledge. Do not ask a shallow “what is [departure point]?” definition. The final question must stand on its own.
         Choose the subject yourself and generate it directly. Do not describe candidate generation or deliberation.
