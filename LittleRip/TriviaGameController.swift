@@ -4,8 +4,7 @@ import Foundation
 @MainActor
 protocol TriviaQuestionProviding: AnyObject {
     func generateTriviaQuestion(
-        blueprint: TriviaQuestionBlueprint,
-        excludedFingerprints: Set<String>
+        blueprint: TriviaQuestionBlueprint
     ) async throws -> TriviaQuestion
 }
 
@@ -30,13 +29,10 @@ enum TriviaAnswerResult: Equatable {
 }
 
 enum TriviaGameError: LocalizedError {
-    case duplicateQuestion
     case generationFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .duplicateQuestion:
-            return "The model repeated a question from this run. Try again for a fresh one."
         case .generationFailed(let message):
             return message
         }
@@ -64,7 +60,7 @@ final class TriviaGameController: ObservableObject {
     private let provider: any TriviaQuestionProviding
     private let defaults: UserDefaults
     private let bestScoreKey = "littlerip.trivia.best-score.v1"
-    private let timeLimitOverride: ((TriviaDifficulty, Int) -> Int)?
+    private let timeLimitOverride: ((Int) -> Int)?
     /// DispatchTime is monotonic and is not affected by wall-clock changes or
     /// an app being suspended. The closure is injectable for deterministic tests.
     private let monotonicNow: () -> UInt64
@@ -75,13 +71,12 @@ final class TriviaGameController: ObservableObject {
     private var roundToken = UUID()
     private var questionDeadline: UInt64?
     private var answerLocked = false
-    private var usedQuestionFingerprints = Set<String>()
     private var pendingBlueprint: TriviaQuestionBlueprint?
 
     init(
         provider: any TriviaQuestionProviding,
         defaults: UserDefaults = .standard,
-        timeLimitOverride: ((TriviaDifficulty, Int) -> Int)? = nil,
+        timeLimitOverride: ((Int) -> Int)? = nil,
         monotonicNow: @escaping () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }
     ) {
         self.provider = provider
@@ -97,10 +92,6 @@ final class TriviaGameController: ObservableObject {
         feedbackTask?.cancel()
     }
 
-    var difficulty: TriviaDifficulty {
-        TriviaGameRules.difficulty(forAnsweredCount: answeredCount)
-    }
-
     var nextReward: Int {
         TriviaGameRules.points(forStreak: streak)
     }
@@ -110,7 +101,6 @@ final class TriviaGameController: ObservableObject {
     func startNewGame() {
         cancelTasks()
         roundToken = UUID()
-        usedQuestionFingerprints.removeAll()
         currentQuestion = nil
         selectedAnswerIndex = nil
         lastResult = nil
@@ -131,7 +121,6 @@ final class TriviaGameController: ObservableObject {
     func returnToHome() {
         cancelTasks()
         roundToken = UUID()
-        usedQuestionFingerprints.removeAll()
         currentQuestion = nil
         selectedAnswerIndex = nil
         lastResult = nil
@@ -195,21 +184,13 @@ final class TriviaGameController: ObservableObject {
 
     private func requestQuestion(for token: UUID) {
         if pendingBlueprint == nil {
-            pendingBlueprint = TriviaQuestionBlueprint(
-                difficulty: difficulty,
-                answeredCount: answeredCount
-            )
+            pendingBlueprint = TriviaQuestionBlueprint()
         }
         guard let blueprint = pendingBlueprint else { return }
-        let exclusions = usedQuestionFingerprints
-
         generationTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let question = try await self.provider.generateTriviaQuestion(
-                    blueprint: blueprint,
-                    excludedFingerprints: exclusions
-                )
+                let question = try await self.provider.generateTriviaQuestion(blueprint: blueprint)
                 try Task.checkCancellation()
                 self.install(question, for: token, blueprint: blueprint)
             } catch is CancellationError {
@@ -222,13 +203,8 @@ final class TriviaGameController: ObservableObject {
 
     private func install(_ question: TriviaQuestion, for token: UUID, blueprint: TriviaQuestionBlueprint) {
         guard token == roundToken, phase == .generating else { return }
-        guard !usedQuestionFingerprints.contains(question.fingerprint) else {
-            generationFailed(TriviaGameError.duplicateQuestion, for: token)
-            return
-        }
-
         do {
-            _ = try question.validated(expectedDifficulty: blueprint.difficulty)
+            _ = try question.validated()
         } catch {
             generationFailed(error, for: token)
             return
@@ -236,7 +212,6 @@ final class TriviaGameController: ObservableObject {
 
         var generator = SystemRandomNumberGenerator()
         let presented = question.shuffled(using: &generator)
-        usedQuestionFingerprints.insert(question.fingerprint)
         pendingBlueprint = nil
         currentQuestion = presented
         selectedAnswerIndex = nil
@@ -244,7 +219,7 @@ final class TriviaGameController: ObservableObject {
         gameOverReason = nil
         answerLocked = false
         errorMessage = nil
-        let limit = timeLimitOverride?(blueprint.difficulty, answeredCount) ?? blueprint.timeLimit
+        let limit = timeLimitOverride?(answeredCount) ?? blueprint.timeLimit
         timeLimit = max(1, limit)
         secondsRemaining = timeLimit
         phase = .answering

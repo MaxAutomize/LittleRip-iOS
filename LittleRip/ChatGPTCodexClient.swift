@@ -223,30 +223,19 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
     /// Invalid model payloads get a bounded retry; auth/network failures are
     /// surfaced to the game as retryable errors and never count as an answer.
     func generateTriviaQuestion(
-        blueprint: TriviaQuestionBlueprint,
-        excludedFingerprints: Set<String>
+        blueprint: TriviaQuestionBlueprint
     ) async throws -> TriviaQuestion {
         var lastValidationError: TriviaQuestionValidationError = .malformedJSON
 
         for attempt in 0..<3 {
             let prompt = TriviaQuestionPrompt.make(
                 blueprint: blueprint,
-                excludedFingerprints: excludedFingerprints,
                 retryReason: attempt == 0 ? nil : lastValidationError.errorDescription
             )
 
             let response = try await ask(prompt: prompt, mode: .trivia, requestedReasoningEffort: "medium")
             do {
-                let question = try TriviaQuestionParser.parse(
-                    response.answer,
-                    expectedDifficulty: blueprint.difficulty
-                )
-                guard !excludedFingerprints.contains(question.fingerprint) else {
-                    lastValidationError = .duplicateQuestion
-                    if attempt < 2 { continue }
-                    throw lastValidationError
-                }
-                return question
+                return try TriviaQuestionParser.parse(response.answer)
             } catch let validationError as TriviaQuestionValidationError {
                 lastValidationError = validationError
                 if attempt == 2 { throw validationError }

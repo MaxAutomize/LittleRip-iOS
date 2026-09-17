@@ -232,10 +232,10 @@ struct ContentView: View {
 
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("ROUND \(String(format: "%02d", game.answeredCount + 1))")
+                    Text("QUESTION \(String(format: "%02d", game.answeredCount + 1))")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                         .foregroundStyle(silverDim)
-                    Text(game.difficulty.title.uppercased())
+                    Text("\(game.streak) IN A ROW")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
                 }
@@ -280,14 +280,15 @@ struct ContentView: View {
     private var questionCard: some View {
         VStack(alignment: .leading, spacing: 11) {
             HStack {
-                if let category = game.currentQuestion?.category {
-                    Text(category.uppercased())
+                if let concept = game.currentQuestion?.concept {
+                    Text(concept.uppercased())
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .tracking(1)
                         .foregroundStyle(eyeGreen)
+                        .lineLimit(1)
                 }
                 Spacer()
-                Text(game.difficulty.title)
+                Text("LIVE")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundStyle(silverDim)
             }

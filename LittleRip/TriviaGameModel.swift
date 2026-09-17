@@ -1,43 +1,14 @@
 import Foundation
 
-/// The deliberately paced depth ladder used when building a run.
-enum TriviaDifficulty: String, Codable, CaseIterable, Equatable, Sendable {
-    case warmup
-    case foundation
-    case application
-    case systems
-    case frontier
-
-    var title: String {
-        switch self {
-        case .warmup: return "Warm-up"
-        case .foundation: return "Foundation"
-        case .application: return "Application"
-        case .systems: return "Systems"
-        case .frontier: return "Frontier"
-        }
-    }
-
-    var ordinal: Int {
-        switch self {
-        case .warmup: return 0
-        case .foundation: return 1
-        case .application: return 2
-        case .systems: return 3
-        case .frontier: return 4
-        }
-    }
-}
-
+/// One live question. The model supplies a free-form concept label solely so
+/// the game can avoid returning the same underlying idea again.
 struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
     let id: String
     let prompt: String
     let choices: [String]
     let correctIndex: Int
     let explanation: String
-    let difficulty: TriviaDifficulty
-    /// Model-authored display label, never a topic-selection constraint.
-    let category: String
+    let concept: String
 
     init(
         id: String = UUID().uuidString,
@@ -45,20 +16,18 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         choices: [String],
         correctIndex: Int,
         explanation: String,
-        difficulty: TriviaDifficulty,
-        category: String = "Reality"
+        concept: String = "Reality"
     ) {
         self.id = id
         self.prompt = prompt
         self.choices = choices
         self.correctIndex = correctIndex
         self.explanation = explanation
-        self.difficulty = difficulty
-        self.category = category
+        self.concept = concept
     }
 
-    /// Exact normalized-text deduplication, not a semantic/factual verifier.
-    /// Prompt exclusions separately discourage rewording an earlier idea.
+    /// Exact prompt deduplication. Semantic repetition is discouraged by the
+    /// Model-authored label shown on the card; it is never stored for generation.
     var fingerprint: String {
         prompt
             .lowercased()
@@ -69,9 +38,7 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
 
     var correctAnswer: String { choices[correctIndex] }
 
-    func validated(
-        expectedDifficulty: TriviaDifficulty? = nil
-    ) throws -> TriviaQuestion {
+    func validated() throws -> TriviaQuestion {
         let cleanedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (8...240).contains(cleanedPrompt.count) else {
             throw TriviaQuestionValidationError.invalidPromptLength
@@ -98,11 +65,8 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         guard (10...500).contains(explanation.trimmingCharacters(in: .whitespacesAndNewlines).count) else {
             throw TriviaQuestionValidationError.invalidExplanationLength
         }
-        if let expectedDifficulty, difficulty != expectedDifficulty {
-            throw TriviaQuestionValidationError.unexpectedDifficulty
-        }
-        guard (1...40).contains(category.trimmingCharacters(in: .whitespacesAndNewlines).count) else {
-            throw TriviaQuestionValidationError.unexpectedCategory
+        guard (1...60).contains(concept.trimmingCharacters(in: .whitespacesAndNewlines).count) else {
+            throw TriviaQuestionValidationError.invalidConcept
         }
         guard !fingerprint.isEmpty else {
             throw TriviaQuestionValidationError.invalidPromptLength
@@ -120,8 +84,7 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
             choices: shuffled.map(\.answer),
             correctIndex: newCorrectIndex,
             explanation: explanation,
-            difficulty: difficulty,
-            category: category
+            concept: concept
         )
     }
 }
@@ -136,10 +99,8 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
     case invalidChoiceLength
     case invalidCorrectIndex
     case duplicateChoices
-    case duplicateQuestion
     case invalidExplanationLength
-    case unexpectedDifficulty
-    case unexpectedCategory
+    case invalidConcept
 
     var errorDescription: String? {
         switch self {
@@ -152,16 +113,14 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
         case .invalidChoiceLength: return "Each answer must be at most 7 words and 60 characters."
         case .invalidCorrectIndex: return "The model returned an invalid correct-answer index."
         case .duplicateChoices: return "The model returned duplicate choices."
-        case .duplicateQuestion: return "The model repeated a question from this run."
         case .invalidExplanationLength: return "The model returned an unusable explanation."
-        case .unexpectedDifficulty: return "The model returned the wrong difficulty for this round."
-        case .unexpectedCategory: return "Use a short subject label of 1–40 characters."
+        case .invalidConcept: return "The model returned an unusable concept label."
         }
     }
 }
 
-/// Parses only the typed JSON contract. A small amount of wrapper recovery keeps
-/// fenced Markdown from breaking a run, but prose is never accepted as a question.
+/// Parses one live model-generated question. No local difficulty, category or
+/// topic vocabulary is required; the concept label is free text.
 struct TriviaQuestionParser {
     private struct Payload: Decodable {
         let id: String?
@@ -169,14 +128,10 @@ struct TriviaQuestionParser {
         let choices: [String]
         let correctIndex: Int
         let explanation: String
-        let difficulty: TriviaDifficulty
-        let category: String
+        let concept: String
     }
 
-    static func parse(
-        _ text: String,
-        expectedDifficulty: TriviaDifficulty
-    ) throws -> TriviaQuestion {
+    static func parse(_ text: String) throws -> TriviaQuestion {
         guard text.utf8.count <= 12_000 else {
             throw TriviaQuestionValidationError.responseTooLarge
         }
@@ -202,10 +157,9 @@ struct TriviaQuestionParser {
                     choices: payload.choices,
                     correctIndex: payload.correctIndex,
                     explanation: payload.explanation,
-                    difficulty: payload.difficulty,
-                    category: payload.category
+                    concept: payload.concept
                 )
-                return try question.validated(expectedDifficulty: expectedDifficulty)
+                return try question.validated()
             } catch {
                 lastError = error
             }
@@ -236,34 +190,8 @@ struct TriviaQuestionParser {
 
 struct TriviaGameRules {
     static let basePoints = 100
-    /// Scores and each addition saturate at this bound, so malformed or very long
-    /// runs can never overflow Int or make the UI unusable.
+    static let questionTimeLimit = 35
     static let maxScore = 10_000_000
-
-    static func difficulty(forAnsweredCount count: Int) -> TriviaDifficulty {
-        switch max(0, count) {
-        case 0...1: return .warmup
-        case 2...4: return .foundation
-        case 5...8: return .application
-        case 9...13: return .systems
-        default: return .frontier
-        }
-    }
-
-    /// Harder questions start with more thinking time. Within each tier, the
-    /// modest pressure term tightens as a run grows, with a safe 18-second floor.
-    static func timeLimit(for difficulty: TriviaDifficulty, answeredCount: Int) -> Int {
-        let base: Int
-        switch difficulty {
-        case .warmup: base = 24
-        case .foundation: base = 29
-        case .application: base = 36
-        case .systems: base = 44
-        case .frontier: base = 54
-        }
-        let pressure = min(14, max(0, answeredCount) / 2)
-        return max(18, base - pressure)
-    }
 
     static func points(forStreak streak: Int) -> Int {
         var points = basePoints
