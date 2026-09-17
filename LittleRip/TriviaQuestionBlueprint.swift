@@ -31,10 +31,13 @@ struct TriviaQuestionPrompt {
 
     static func make(
         blueprint: TriviaQuestionBlueprint,
+        departurePoint: String,
         retryReason: String? = nil
     ) -> String {
         """
-        Generate one question from the full universe of knowledge. There is no round tier, assigned subject, topic menu, memory block or random seed. The timer is \(blueprint.timeLimit) seconds.
+        Generate one question from the full universe of knowledge. There is no round tier, assigned subject, topic menu or memory block. The timer is \(blueprint.timeLimit) seconds.
+        FRESH DEPARTURE POINT: \(departurePoint)
+        This is not a requested topic, a question bank entry or an answer. Use it only to break the usual high-probability groove: make a surprising conceptual or quantitative leap from it, or let it provoke a different region of knowledge. Do not ask a shallow “what is [departure point]?” definition. The final question must stand on its own.
         Choose the subject yourself and generate it directly. Do not describe candidate generation or deliberation.
         Make four short answers. Check the answer, units and arithmetic silently. Invent a short free-form concept label for display only; it is not stored or used to select future questions.
         \(retryReason.map { "RETRY: \($0) Return a new question generated from a different idea." } ?? "")

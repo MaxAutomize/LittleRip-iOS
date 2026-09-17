@@ -81,15 +81,15 @@ struct TriviaCoreTests {
         precondition(voice.contains("numbers and natural structure"))
 
         let context = TriviaQuestionBlueprint()
-        let prompt = TriviaQuestionPrompt.make(blueprint: context)
+        let prompt = TriviaQuestionPrompt.make(blueprint: context, departurePoint: "tectonic glass")
         precondition(prompt.contains("There is no round tier"))
         precondition(prompt.contains("full universe of knowledge"))
-        precondition(!prompt.contains("difficulty"))
+        precondition(prompt.contains("FRESH DEPARTURE POINT: tectonic glass"))
         precondition(!prompt.contains("RECENT MEMORY"))
         precondition(prompt.contains("\"concept\":\"short free-form subject label\""))
         precondition(prompt.utf8.count < 4_000)
 
-        let retry = TriviaQuestionPrompt.make(blueprint: context, retryReason: "malformed JSON")
+        let retry = TriviaQuestionPrompt.make(blueprint: context, departurePoint: "neutrino", retryReason: "malformed JSON")
         precondition(retry.contains("different idea"))
     }
 

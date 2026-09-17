@@ -228,8 +228,11 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
         var lastValidationError: TriviaQuestionValidationError = .malformedJSON
 
         for attempt in 0..<3 {
+            let departurePoint = await WebSearchClient.randomDiscoverySeed()
+                ?? "fresh random departure \(UUID().uuidString)"
             let prompt = TriviaQuestionPrompt.make(
                 blueprint: blueprint,
+                departurePoint: departurePoint,
                 retryReason: attempt == 0 ? nil : lastValidationError.errorDescription
             )
 

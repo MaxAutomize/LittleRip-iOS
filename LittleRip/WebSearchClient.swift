@@ -24,6 +24,18 @@ struct DuckDuckGoResponse: Decodable {
     }
 }
 
+private struct WikipediaRandomResponse: Decodable {
+    let query: Query?
+
+    struct Query: Decodable {
+        let random: [RandomPage]?
+    }
+
+    struct RandomPage: Decodable {
+        let title: String
+    }
+}
+
 private struct WikipediaSearchResponse: Decodable {
     let query: Query?
 
@@ -61,6 +73,35 @@ private struct WikipediaArticleResponse: Decodable {
 /// Keyword search exists only as a recovery path when a selected title does not
 /// resolve, never as the normal way of inventing a pile of loosely related links.
 final class WebSearchClient {
+    /// Returns one fresh encyclopedic departure point. It is deliberately only
+    /// a jump-off signal for trivia generation, never a stored question bank or
+    /// a claim that the final question is about this page.
+    static func randomDiscoverySeed() async -> String? {
+        var components = URLComponents(string: "https://en.wikipedia.org/w/api.php")
+        components?.queryItems = [
+            URLQueryItem(name: "action", value: "query"),
+            URLQueryItem(name: "format", value: "json"),
+            URLQueryItem(name: "list", value: "random"),
+            URLQueryItem(name: "rnnamespace", value: "0"),
+            URLQueryItem(name: "rnlimit", value: "1")
+        ]
+        guard let url = components?.url else { return nil }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        request.setValue("LittleRip/1.0 (iOS trivia generation)", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode),
+              let decoded = try? JSONDecoder().decode(WikipediaRandomResponse.self, from: data),
+              let title = decoded.query?.random?.first?.title.trimmingCharacters(in: .whitespacesAndNewlines),
+              !title.isEmpty else {
+            return nil
+        }
+        return title
+    }
+
     static func search(
         _ query: String,
         history: String = "",
