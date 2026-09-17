@@ -78,7 +78,7 @@ struct TriviaCoreTests {
         precondition(voice.contains("no local memory"))
         precondition(voice.contains("There is no increasing difficulty"))
         precondition(voice.contains("The Birth of Tragedy"))
-        precondition(voice.contains("Use numbers, quantities"))
+        precondition(voice.contains("numbers and natural structure"))
 
         let context = TriviaQuestionBlueprint()
         let prompt = TriviaQuestionPrompt.make(blueprint: context, departurePoint: "tectonic glass")
