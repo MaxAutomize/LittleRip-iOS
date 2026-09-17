@@ -29,45 +29,6 @@ enum TriviaDifficulty: String, Codable, CaseIterable, Equatable, Sendable {
     }
 }
 
-enum TriviaCategory: String, Codable, CaseIterable, Equatable, Sendable {
-    case humanNature = "human_nature"
-    case history = "history"
-    case geography = "geography"
-    case economics = "economics"
-    case institutions = "institutions"
-    case technology = "technology"
-    case science = "science"
-    case philosophy = "philosophy"
-
-    var title: String {
-        switch self {
-        case .humanNature: return "Human Nature"
-        case .history: return "History"
-        case .geography: return "Geography"
-        case .economics: return "Economics"
-        case .institutions: return "Power & Institutions"
-        case .technology: return "Technology"
-        case .science: return "Science & Math"
-        case .philosophy: return "Philosophy"
-        }
-    }
-
-    /// A one-line suggestion of the kinds of concrete topics that live here.
-    /// The model picks freely; this is a compass, not a constraint.
-    var topicHint: String {
-        switch self {
-        case .humanNature: return "desire, dopamine, imitation, attention, cooperation, reward, fear, memory"
-        case .history: return "deep history, civilizations, farming, writing, migration, archaeology, religion, symbols"
-        case .geography: return "watersheds, mountains, climate, soils, ports, trade routes, settlement, tectonics"
-        case .economics: return "incentives, scarcity, opportunity cost, externalities, coordination, substitution, risk"
-        case .institutions: return "power, law, voting, principal-agent, standards, common resources, credible commitments"
-        case .technology: return "AI, computation, bits, networks, error correction, compression, training, inference, energy"
-        case .science: return "physics, chemistry, biology, energy, materials, evolution, math, calculus, trig, constants"
-        case .philosophy: return "epistemology, desire, identity, falsifiability, mind, will, ethics, consciousness, models"
-        }
-    }
-}
-
 struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
     let id: String
     let prompt: String
@@ -75,7 +36,8 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
     let correctIndex: Int
     let explanation: String
     let difficulty: TriviaDifficulty
-    let category: TriviaCategory
+    /// Model-authored display label, never a topic-selection constraint.
+    let category: String
 
     init(
         id: String = UUID().uuidString,
@@ -84,7 +46,7 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         correctIndex: Int,
         explanation: String,
         difficulty: TriviaDifficulty,
-        category: TriviaCategory = .science
+        category: String = "Reality"
     ) {
         self.id = id
         self.prompt = prompt
@@ -108,17 +70,19 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
     var correctAnswer: String { choices[correctIndex] }
 
     func validated(
-        expectedDifficulty: TriviaDifficulty? = nil,
-        expectedCategory: TriviaCategory? = nil
+        expectedDifficulty: TriviaDifficulty? = nil
     ) throws -> TriviaQuestion {
         let cleanedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard (12...420).contains(cleanedPrompt.count) else {
+        guard (8...240).contains(cleanedPrompt.count) else {
             throw TriviaQuestionValidationError.invalidPromptLength
         }
         guard choices.count == 4 else {
             throw TriviaQuestionValidationError.mustHaveFourChoices
         }
-        guard choices.allSatisfy({ (1...140).contains($0.trimmingCharacters(in: .whitespacesAndNewlines).count) }) else {
+        guard choices.allSatisfy({
+            (1...60).contains($0.trimmingCharacters(in: .whitespacesAndNewlines).count)
+                && $0.split(whereSeparator: { $0.isWhitespace }).count <= 7
+        }) else {
             throw TriviaQuestionValidationError.invalidChoiceLength
         }
         guard (0..<choices.count).contains(correctIndex) else {
@@ -137,7 +101,7 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         if let expectedDifficulty, difficulty != expectedDifficulty {
             throw TriviaQuestionValidationError.unexpectedDifficulty
         }
-        if let expectedCategory, category != expectedCategory {
+        guard (1...40).contains(category.trimmingCharacters(in: .whitespacesAndNewlines).count) else {
             throw TriviaQuestionValidationError.unexpectedCategory
         }
         guard !fingerprint.isEmpty else {
@@ -185,13 +149,13 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
         case .missingRequiredField(let field): return "Luna's question is missing \(field)."
         case .invalidPromptLength: return "Luna returned an unusable question prompt."
         case .mustHaveFourChoices: return "Luna did not return exactly four choices."
-        case .invalidChoiceLength: return "Luna returned an unusable answer choice."
+        case .invalidChoiceLength: return "Each answer must be at most 7 words and 60 characters."
         case .invalidCorrectIndex: return "Luna returned an invalid correct-answer index."
         case .duplicateChoices: return "Luna returned duplicate choices."
         case .duplicateQuestion: return "Luna repeated a question from this run."
         case .invalidExplanationLength: return "Luna returned an unusable explanation."
         case .unexpectedDifficulty: return "Luna returned the wrong difficulty for this round."
-        case .unexpectedCategory: return "Luna returned the wrong category for this round."
+        case .unexpectedCategory: return "Use a short subject label of 1–40 characters."
         }
     }
 }
@@ -206,13 +170,12 @@ struct TriviaQuestionParser {
         let correctIndex: Int
         let explanation: String
         let difficulty: TriviaDifficulty
-        let category: TriviaCategory
+        let category: String
     }
 
     static func parse(
         _ text: String,
-        expectedDifficulty: TriviaDifficulty,
-        expectedCategory: TriviaCategory? = nil
+        expectedDifficulty: TriviaDifficulty
     ) throws -> TriviaQuestion {
         guard text.utf8.count <= 12_000 else {
             throw TriviaQuestionValidationError.responseTooLarge
@@ -242,7 +205,7 @@ struct TriviaQuestionParser {
                     difficulty: payload.difficulty,
                     category: payload.category
                 )
-                return try question.validated(expectedDifficulty: expectedDifficulty, expectedCategory: expectedCategory)
+                return try question.validated(expectedDifficulty: expectedDifficulty)
             } catch {
                 lastError = error
             }

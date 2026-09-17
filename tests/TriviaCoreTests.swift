@@ -118,58 +118,51 @@ struct TriviaCoreTests {
     }
 
     private static func testEditorialPlan() {
-        // Verify balanced coverage: every domain appears before any repeats too much.
-        var openers = Set<TriviaCategory>()
-        for seed in 0..<100 {
-            var rng = FixedRNG(state: UInt64(seed + 1))
-            var history: [TriviaCategory] = []
-            for count in 0..<100 {
-                let tier = TriviaGameRules.difficulty(forAnsweredCount: count)
-                let plan = TriviaEditorialPlan.make(difficulty: tier, answeredCount: count, categoryHistory: history, using: &rng)
-                precondition(!history.suffix(2).contains(plan.category))
-                precondition(plan.difficulty == tier)
-                precondition(plan.answeredCount == count)
-                precondition(plan.timeLimit == TriviaGameRules.timeLimit(for: tier, answeredCount: count))
-                if count == 0 { openers.insert(plan.category) }
-                history.append(plan.category)
-                // Every domain appears in a full cycle.
-                if count == 13 { precondition(Set(history) == Set(TriviaCategory.allCases)) }
-                // Long runs keep broad coverage.
-                if count >= 18 { precondition(Set(history.suffix(18)) == Set(TriviaCategory.allCases)) }
-            }
+        // Context contains no assigned domain or skill. Fresh requests vary even at round 1.
+        var tokens = Set<String>()
+        for count in 0..<100 {
+            let tier = TriviaGameRules.difficulty(forAnsweredCount: count)
+            let context = TriviaQuestionBlueprint(difficulty: tier, answeredCount: count)
+            precondition(context.timeLimit == TriviaGameRules.timeLimit(for: tier, answeredCount: count))
+            tokens.insert(context.noveltyToken)
         }
-        precondition(openers.count == TriviaCategory.allCases.count)
-
-        // Negative answeredCount clamps to 0.
-        var a = FixedRNG(), b = FixedRNG()
-        precondition(TriviaEditorialPlan.make(difficulty: .warmup, answeredCount: -1, categoryHistory: [], using: &a)
-                     == TriviaEditorialPlan.make(difficulty: .warmup, answeredCount: 0, categoryHistory: [], using: &b))
+        precondition(tokens.count == 100)
+        let a = TriviaQuestionBlueprint(difficulty: .warmup, answeredCount: 0)
+        let b = TriviaQuestionBlueprint(difficulty: .warmup, answeredCount: 0)
+        precondition(a.noveltyToken != b.noveltyToken)
     }
 
     private static func testPromptContract() {
-        var rng = FixedRNG()
-        var history: [TriviaCategory] = []
         var review: [String] = []
         for count in 0..<20 {
-            let plan = TriviaEditorialPlan.make(
-                difficulty: TriviaGameRules.difficulty(forAnsweredCount: count),
-                answeredCount: count, categoryHistory: history, using: &rng
+            let plan = TriviaQuestionBlueprint(
+                difficulty: TriviaGameRules.difficulty(forAnsweredCount: count), answeredCount: count
             )
-            history.append(plan.category)
             let prompt = TriviaQuestionPrompt.make(blueprint: plan, excludedFingerprints: ["earlier idea"])
-            precondition(prompt.contains(plan.category.rawValue))
-            precondition(prompt.contains(plan.category.topicHint))
             precondition(prompt.contains("Player has \(plan.timeLimit) seconds"))
-            precondition(prompt.contains("\"category\":\"\(plan.category.rawValue)\""))
+            precondition(prompt.contains("There is no category list"))
+            precondition(prompt.contains(plan.noveltyToken))
+            precondition(!prompt.contains("Domain:") && !prompt.contains("topicHint"))
             precondition(prompt.contains("\"difficulty\":\"\(plan.difficulty.rawValue)\""))
             precondition(prompt.contains("correctIndex is zero-based"))
             precondition(prompt.contains("earlier idea"))
-            precondition(prompt.utf8.count < 4_000) // prompt stays compact
-            let retried = TriviaQuestionPrompt.make(blueprint: plan, excludedFingerprints: [], retryReason: "wrong category")
-            precondition(retried.contains("Previous output rejected: wrong category"))
-            if [0, 3, 5, 7, 10, 14, 19].contains(count) {
-                review.append("ROUND \(count + 1): \(plan.category.rawValue)\n\(prompt)")
-            }
+            precondition(prompt.utf8.count < 4_000)
+            let retried = TriviaQuestionPrompt.make(blueprint: plan, excludedFingerprints: [], retryReason: "long answers")
+            precondition(retried.contains("Previous output rejected: long answers"))
+            review.append(prompt)
+        }
+        // A freely invented label must decode: metadata cannot restrict discovery.
+        let json = """
+        {"question":"What bends the path of light near a star?","choices":["Spacetime curvature","Air pressure","Friction","Sound"],"correctIndex":0,"explanation":"Mass curves spacetime; light follows that geometry.","difficulty":"warmup","category":"Light and spacetime"}
+        """
+        let q = try! TriviaQuestionParser.parse(json, expectedDifficulty: .warmup)
+        precondition(q.category == "Light and spacetime")
+        let longChoice = json.replacingOccurrences(of: "Spacetime curvature", with: "One two three four five six seven eight")
+        do {
+            _ = try TriviaQuestionParser.parse(longChoice, expectedDifficulty: .warmup)
+            preconditionFailure("wordy choices must be rejected")
+        } catch TriviaQuestionValidationError.invalidChoiceLength {} catch {
+            preconditionFailure("unexpected error: \(error)")
         }
         if CommandLine.arguments.contains("--dump-prompts") {
             try! review.joined(separator: "\n\n---\n\n").write(toFile: "/tmp/littlerip-prompts.txt", atomically: true, encoding: .utf8)

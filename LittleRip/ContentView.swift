@@ -281,7 +281,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 11) {
             HStack {
                 if let category = game.currentQuestion?.category {
-                    Text(category.title.uppercased())
+                    Text(category.uppercased())
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .tracking(1)
                         .foregroundStyle(eyeGreen)

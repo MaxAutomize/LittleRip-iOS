@@ -1,43 +1,23 @@
 import Foundation
 
-/// A loose assignment for one round: difficulty tier + suggested domain.
-/// The model has full freedom to pick any concrete topic within the domain.
-/// No skill curriculum, no editorial test, no rigid form requirements.
+/// Round context only. No local topic selector, question bank, or curriculum.
+/// The nonce varies otherwise identical opening requests; it does not select a topic.
 struct TriviaQuestionBlueprint: Equatable, Sendable {
     let difficulty: TriviaDifficulty
     let answeredCount: Int
-    let category: TriviaCategory
+    let noveltyToken: String = UUID().uuidString
 
     var timeLimit: Int { TriviaGameRules.timeLimit(for: difficulty, answeredCount: answeredCount) }
 }
 
-struct TriviaEditorialPlan {
-    /// Pick a random domain, balanced so every domain appears before any
-    /// domain repeats too often. Never repeat the last 2 domains.
-    static func make<R: RandomNumberGenerator>(
-        difficulty: TriviaDifficulty,
-        answeredCount: Int,
-        categoryHistory: [TriviaCategory],
-        using random: inout R
-    ) -> TriviaQuestionBlueprint {
-        let count = max(0, answeredCount)
-        let history = Array(categoryHistory.suffix(18))
-        let candidates = TriviaCategory.allCases.filter { !history.suffix(2).contains($0) }
-        let visits = Dictionary(grouping: history, by: { $0 }).mapValues(\.count)
-        let fewest = candidates.map { visits[$0, default: 0] }.min() ?? 0
-        let balanced = candidates.filter { visits[$0, default: 0] == fewest }
-        let category = balanced.randomElement(using: &random) ?? .science
-        return TriviaQuestionBlueprint(difficulty: difficulty, answeredCount: count, category: category)
-    }
-}
-
 struct TriviaQuestionPrompt {
     static let system = """
-    You are the question engine for LittleRip, a game about the hidden structure of reality. \
-    Generate one surprising, true, blunt question. The correct answer should land like an axiom — short, distinct, irreducible. \
-    Four short answers: a word, phrase, number, or compact idea. Never sentences. \
-    One correct answer. Three plausible distractors from real misconceptions, not random nonsense. \
-    Plain text only. No Markdown, no LaTeX, no chain of thought. No hypothetical scenarios or invented examples.
+    LittleRip is a playable encounter with reality: what is this thing we are in?
+    Not primarily how humans organize society or operate machines, but the existence we find ourselves inside. Choose freely across reality, beyond human concerns. No fixed topic menu or lesson sequence.
+    The reward is a revelation: something real becomes strange, understandable or beautiful in one short answer. Universal does not mean abstract jargon. Ask about the thing itself, not a technical label the player has memorized. Go beyond people without excluding life, mind or mathematics as parts of nature.
+    Generate one fresh question on the spot, its four choices, correct index and explanation. Do not pick from a stock set of favorite trivia. Vary subject, scale and kind of discovery without cycling a list. No invented scenarios, institutional trivia, efficiency puzzles, generic common sense, or speculative future situations.
+    Be blunt without being false. Exactly one choice must be correct for the question as worded. Established knowledge is not the same as a hypothesis, philosophical interpretation or unresolved mystery. Attribute a theory in the question when testing it; do not invent certainty about ultimate questions. Simplify language, not truth. Avoid pedantic traps and differences too small to matter.
+    Short question; four tiny answers, usually 1–5 words, at most 7 words/60 characters each. A number, relationship or equation is welcome. Three plausible distinct wrong answers, not jokes or paragraph-length caveats. Explanation: 1–2 clear short sentences revealing why. Plain Unicode math. Return only the requested JSON, no reasoning transcript.
     """
 
     static func make(
@@ -45,42 +25,31 @@ struct TriviaQuestionPrompt {
         excludedFingerprints: Set<String>,
         retryReason: String? = nil
     ) -> String {
-        let prior = excludedFingerprints.sorted().prefix(12).map { String($0.prefix(420)) }
+        let prior = excludedFingerprints.sorted().prefix(100).map { String($0.prefix(240)) }
         let exclusions = prior.isEmpty ? "none" : prior.joined(separator: " | ")
-
-        let tierGuide: String
+        let depth: String
         switch blueprint.difficulty {
         case .warmup:
-            tierGuide = "Recognize a surprising concrete fact. Anyone could know it; few have noticed it."
+            depth = "Accessible: a surprising reality stated in everyday language, answerable in seconds. Not a trivial vocabulary quiz."
         case .foundation:
-            tierGuide = "One step of inference from a concrete fact. Distinguish cause from correlation."
+            depth = "A little deeper: a less obvious fact or distinction about what exists or how it works."
         case .application:
-            tierGuide = "Apply a principle to a real case. Math questions should require actual calculation."
+            depth = "Demanding: understanding a fundamental relationship, not just recognizing a familiar phrase."
         case .systems:
-            tierGuide = "Two interacting mechanisms. Include a tradeoff or bottleneck that defeats the obvious answer."
+            depth = "Deep: an unexpected connection or a subtle distinction with a simple decisive answer. No mandatory tradeoff or bottleneck."
         case .frontier:
-            tierGuide = "Connect two domains. The correct answer must follow from explicit facts, not speculative expertise."
+            depth = "Very demanding: profound relationships, precise conceptual distinctions or elegant mathematics. Keep increasing depth as the round grows, never reading burden or jargon."
         }
-
-        let mathNudge = blueprint.answeredCount >= 5
-            ? "\nAt higher tiers, include questions that require real calculation or mathematical understanding (rates, ratios, constants, trig, calculus, geometry)."
-            : ""
-
         return """
-        Round \(blueprint.answeredCount + 1). Tier: \(blueprint.difficulty.rawValue).
-        \(tierGuide)
-        Domain: \(blueprint.category.rawValue) — \(blueprint.category.topicHint)
-        Pick any concrete topic within this domain. No predictable lesson plan. \
-        Ask what exists, what came first, what something means, what causes it. \
-        Not hypothetical scenarios, generic common sense, classroom exercises, or invented examples about cars and factories.\(mathNudge)
-        Player has \(blueprint.timeLimit) seconds including reading four buttons. Question under 60 words. Each choice under 8 words.
-        Exactly one correct answer. Distractors from distinct real misconceptions (wrong cause, reversal, scale error, wrong unit, common myth), not random nonsense.
-        Explanation: 1–2 short sentences stating the decisive fact or mechanism. No lesson pitch, no citation invented from memory.
-        Avoid these earlier question ideas, even reworded: \(exclusions)
-        \(retryReason.map { "Previous output rejected: \($0) Fix that defect." } ?? "")
-
-        Return ONLY this JSON (correctIndex is zero-based):
-        {"question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"...","difficulty":"\(blueprint.difficulty.rawValue)","category":"\(blueprint.category.rawValue)"}
+        Create the next question freely. Round \(blueprint.answeredCount + 1); difficulty \(blueprint.difficulty.rawValue).
+        \(depth)
+        Novelty token: \(blueprint.noveltyToken) (variation only; never show or ask about it).
+        Player has \(blueprint.timeLimit) seconds including four buttons. Aim for a question under 30 words; maximum 240 characters. Choices at most 7 words/60 characters.
+        Pick a genuinely different discovery from these previously seen questions, not a rewording: \(exclusions)
+        Category is a short label YOU invent after choosing the question, not an assigned domain. There is no category list.
+        \(retryReason.map { "Previous output rejected: \($0) Fix this without repeating the idea." } ?? "")
+        Return only this JSON (correctIndex is zero-based):
+        {"question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"...","difficulty":"\(blueprint.difficulty.rawValue)","category":"short subject label"}
         """
     }
 }

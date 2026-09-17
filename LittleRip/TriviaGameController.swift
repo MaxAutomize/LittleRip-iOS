@@ -76,7 +76,6 @@ final class TriviaGameController: ObservableObject {
     private var questionDeadline: UInt64?
     private var answerLocked = false
     private var usedQuestionFingerprints = Set<String>()
-    private var recentCategories = [TriviaCategory]()
     private var pendingBlueprint: TriviaQuestionBlueprint?
 
     init(
@@ -112,7 +111,6 @@ final class TriviaGameController: ObservableObject {
         cancelTasks()
         roundToken = UUID()
         usedQuestionFingerprints.removeAll()
-        recentCategories.removeAll()
         currentQuestion = nil
         selectedAnswerIndex = nil
         lastResult = nil
@@ -134,7 +132,6 @@ final class TriviaGameController: ObservableObject {
         cancelTasks()
         roundToken = UUID()
         usedQuestionFingerprints.removeAll()
-        recentCategories.removeAll()
         currentQuestion = nil
         selectedAnswerIndex = nil
         lastResult = nil
@@ -198,12 +195,9 @@ final class TriviaGameController: ObservableObject {
 
     private func requestQuestion(for token: UUID) {
         if pendingBlueprint == nil {
-            var random = SystemRandomNumberGenerator()
-            pendingBlueprint = TriviaEditorialPlan.make(
+            pendingBlueprint = TriviaQuestionBlueprint(
                 difficulty: difficulty,
-                answeredCount: answeredCount,
-                categoryHistory: recentCategories,
-                using: &random
+                answeredCount: answeredCount
             )
         }
         guard let blueprint = pendingBlueprint else { return }
@@ -228,8 +222,7 @@ final class TriviaGameController: ObservableObject {
 
     private func install(_ question: TriviaQuestion, for token: UUID, blueprint: TriviaQuestionBlueprint) {
         guard token == roundToken, phase == .generating else { return }
-        guard question.difficulty == blueprint.difficulty,
-              !usedQuestionFingerprints.contains(question.fingerprint) else {
+        guard !usedQuestionFingerprints.contains(question.fingerprint) else {
             generationFailed(TriviaGameError.duplicateQuestion, for: token)
             return
         }
@@ -244,11 +237,7 @@ final class TriviaGameController: ObservableObject {
         var generator = SystemRandomNumberGenerator()
         let presented = question.shuffled(using: &generator)
         usedQuestionFingerprints.insert(question.fingerprint)
-        recentCategories.append(question.category)
         pendingBlueprint = nil
-        if recentCategories.count > 18 {
-            recentCategories.removeFirst()
-        }
         currentQuestion = presented
         selectedAnswerIndex = nil
         lastResult = nil

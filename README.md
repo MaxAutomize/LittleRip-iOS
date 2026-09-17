@@ -9,12 +9,12 @@ LittleRip is a compact, chrome/silver/black/white trivia game with the existing 
 - In-game UI is limited to score, best, streak, answered count, category, difficulty, timer, next reward, one question, and exactly four shuffled answer buttons.
 - The model returns one validated JSON question with exactly four unique answer choices, one correct index, a concise explanation, and a category. Choices are shuffled on-device while preserving the correct answer.
 - **The game is a cabinet of revelations.** Questions pull surprising truths from evolution, civilization, the mind, philosophy, AI, physics, and mathematics. The pleasure is: *"I never thought about it that way—and the answer is so simple."* Short, blunt questions. Four tiny, sharply distinct answers: a word, phrase, number, or compact idea—not sentences. Not hypothetical scenarios, generic common sense, or invented examples. Real discoveries, fundamental relationships, and powerful ideas.
-- A local blueprint assigns a balanced, randomized domain and a difficulty tier before each model call. The model has full freedom to pick any concrete topic within that domain. No skill curriculum, no rigid editorial form, no predictable lesson plan. Domains span human nature, history, geography, economics, institutions, technology, science & math, and philosophy.
-- **Earned difficulty:** Warm-up notices a surprising concrete fact; Foundation makes one inference; Application applies a principle (math questions require actual calculation); Systems combines two mechanisms with a tradeoff; Frontier connects two domains. Harder means deeper understanding, not longer sentences.
+- **Reality beyond human systems:** the central question is “what is this thing we are in?” The model chooses the discovery on the spot, without a topic menu, category scheduler, example bank or human-institutions bias. Subject labels are free text generated afterward, not constraints. Hypotheses and interpretations must be distinguished from established knowledge.
+- **Earned difficulty:** round context supplies only depth, timing, prior-question exclusions and a fresh novelty token. Depth grows from accessible discoveries to profound relationships and mathematical understanding. No mandatory calculation, tradeoff or bottleneck. Answers are enforced at at most 7 words/60 characters; stems at most 240 characters. Tokens vary requests but do not guarantee semantic novelty.
 - Each blueprint includes the actual timer budget, concise buttons, and misconception-based distractors. Established facts only; contested ideas must be attributed and bounded. Retries retain the same blueprint and receive the validation failure; no extra serial AI call is added.
 - Correct answers show brief points feedback, then automatically load the next question. Wrong answers and time expiration end the run and reveal the correct answer, a straightforward explanation, score, and **New Game**.
 - Network, authentication, cancellation, or malformed/invalid responses are retryable loading errors, never wrong answers and never score penalties. Malformed model payloads are retried up to three times. If authentication is needed, the game shows only a contextual sign-in affordance; there is no permanent settings UI.
-- Trivia requests use reasoning effort `medium` for normal generation quality and diversity.
+- Trivia requests use reasoning effort `medium`. Reasoning effort is not a guarantee of diversity or factual accuracy.
 
 ## Scoring and timer
 
@@ -37,12 +37,12 @@ The SmartRent flow remains independent of the game and its existing lock-screen 
 ## Source layout
 
 - **`LittleRip/TriviaGameModel.swift`** — typed question/category/explanation contract, bounded JSON/wrapper parsing, validation, shuffle, difficulty, timer, and saturating score rules.
-- **`LittleRip/TriviaQuestionBlueprint.swift`** — loose domain/tier assignment, compact generation prompt; no fixed question bank, no skill curriculum.
-- **`LittleRip/TriviaGameController.swift`** — main-actor game state machine, category history, return-home cancellation, stale-result guards, monotonic timer, persistence, feedback, and retry behavior.
+- **`LittleRip/TriviaQuestionBlueprint.swift`** — round depth/timer/novelty context and open-ended reality prompt; no category scheduler or fixed question bank.
+- **`LittleRip/TriviaGameController.swift`** — main-actor game state machine, return-home cancellation, stale-result guards, monotonic timer, persistence, feedback, and retry behavior.
 - **`LittleRip/ChatGPTCodexClient.swift`** — authenticated ChatGPT client with the world-understanding question contract.
 - **`LittleRip/ContentView.swift`** — minimal SwiftUI game experience with preserved robot styling and contextual sign-in only when required.
 - **`LittleRipWidgetExtension/`** — no-microphone New Game launcher plus the preserved SmartRent unlock Control Widget.
-- **`tests/TriviaCoreTests.swift`** — deterministic standalone regression harness for rules, parsing, shuffle, state transitions, retry, cancellation, return-home, timeout and persistence; also checks 100 seeded 100-question domain coverage and prompt budgets.
+- **`tests/TriviaCoreTests.swift`** — deterministic standalone regression harness for rules, parsing, shuffle, state transitions, retry, cancellation, return-home, timeout and persistence; also checks fresh request tokens, free subject labels, concise-answer limits and prompt budgets.
 
 Local validation checks shape, expected tier, and exact normalized-text repeats, not factual truth. Generation quality still depends on the model; verify surprising claims independently.
 
