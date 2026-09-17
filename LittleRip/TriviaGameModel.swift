@@ -1,6 +1,6 @@
 import Foundation
 
-/// The deliberately paced ladder used by Luna when building a run.
+/// The deliberately paced depth ladder used when building a run.
 enum TriviaDifficulty: String, Codable, CaseIterable, Equatable, Sendable {
     case warmup
     case foundation
@@ -143,18 +143,18 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .malformedJSON: return "Luna returned malformed JSON."
-        case .responseTooLarge: return "Luna's response was too large."
-        case .mustBeJSONObject: return "Luna returned something other than one question object."
-        case .missingRequiredField(let field): return "Luna's question is missing \(field)."
-        case .invalidPromptLength: return "Luna returned an unusable question prompt."
-        case .mustHaveFourChoices: return "Luna did not return exactly four choices."
+        case .malformedJSON: return "The model returned malformed JSON."
+        case .responseTooLarge: return "The model response was too large."
+        case .mustBeJSONObject: return "The model returned something other than one question object."
+        case .missingRequiredField(let field): return "The question is missing \(field)."
+        case .invalidPromptLength: return "The model returned an unusable question prompt."
+        case .mustHaveFourChoices: return "The model did not return exactly four choices."
         case .invalidChoiceLength: return "Each answer must be at most 7 words and 60 characters."
-        case .invalidCorrectIndex: return "Luna returned an invalid correct-answer index."
-        case .duplicateChoices: return "Luna returned duplicate choices."
-        case .duplicateQuestion: return "Luna repeated a question from this run."
-        case .invalidExplanationLength: return "Luna returned an unusable explanation."
-        case .unexpectedDifficulty: return "Luna returned the wrong difficulty for this round."
+        case .invalidCorrectIndex: return "The model returned an invalid correct-answer index."
+        case .duplicateChoices: return "The model returned duplicate choices."
+        case .duplicateQuestion: return "The model repeated a question from this run."
+        case .invalidExplanationLength: return "The model returned an unusable explanation."
+        case .unexpectedDifficulty: return "The model returned the wrong difficulty for this round."
         case .unexpectedCategory: return "Use a short subject label of 1–40 characters."
         }
     }

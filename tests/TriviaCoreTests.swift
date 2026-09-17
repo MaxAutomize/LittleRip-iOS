@@ -134,12 +134,15 @@ struct TriviaCoreTests {
 
     private static func testPromptContract() {
         let voice = TriviaQuestionPrompt.system
-        precondition(voice.contains("Editorial touchstones, not impersonations"))
-        precondition(voice.contains("not a quota or a round schedule"))
+        precondition(voice.contains("The Birth of Tragedy"))
+        precondition(voice.contains("compressed, playable canon"))
+        precondition(voice.contains("QUESTION DNA — DERIVE, DO NOT COPY"))
+        precondition(voice.contains("Do not repeat the seed questions mechanically"))
         precondition(voice.contains("without claiming to measure IQ"))
-        precondition(voice.contains("Check the arithmetic"))
-        precondition(voice.contains("Attribute a theory"))
-        precondition(voice.utf8.count < 7_000)
+        precondition(voice.contains("Check arithmetic"))
+        precondition(voice.contains("leading hypothesis"))
+        precondition(voice.contains("There is no local question bank"))
+        precondition(voice.utf8.count < 12_000)
         var review: [String] = []
         for count in 0..<20 {
             let plan = TriviaQuestionBlueprint(
