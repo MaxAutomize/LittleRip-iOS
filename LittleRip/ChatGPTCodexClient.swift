@@ -268,13 +268,22 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
             Do not promise that an AI-generated explanation is certainly true.
 
             Return ONLY this JSON object, with no Markdown or prose before/after it:
-            {"id":"stable-short-id","question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"brief reason","implication":"one grounded implication","difficulty":"\(difficulty.rawValue)","category":"\(suggestedCategory.rawValue)"}
+            {"id":"stable-short-id","question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"brief reason","difficulty":"\(difficulty.rawValue)","category":"\(suggestedCategory.rawValue)"}
             The choices must be exactly four, mutually distinct, plausible, and
-            concise. correctIndex is zero-based. explanation and implication are
-            brief and readable. Use plain Unicode math, not LaTeX.
+            concise. correctIndex is zero-based. explanation must be brief,
+            readable, and explain why the answer is correct. Use plain Unicode
+            math, not LaTeX.
             """
 
-            let response = try await ask(prompt: prompt, mode: .trivia)
+            let response: ChatGPTResult
+            do {
+                // Luna's lowest reasoning setting is attempted first. If this
+                // account/model rejects `none`, retry once with the lowest
+                // conventional fallback rather than failing the game.
+                response = try await ask(prompt: prompt, mode: .trivia, requestedReasoningEffort: "none")
+            } catch let error where Self.isUnsupportedReasoningEffort(error) {
+                response = try await ask(prompt: prompt, mode: .trivia, requestedReasoningEffort: "low")
+            }
             do {
                 let question = try TriviaQuestionParser.parse(
                     response.answer,
@@ -594,6 +603,17 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
             seen.insert(key)
             return cleaned
         }
+    }
+
+    private static func isUnsupportedReasoningEffort(_ error: Error) -> Bool {
+        guard case ChatGPTCodexError.invalidResponse(let message) = error else { return false }
+        let value = message.lowercased()
+        let mentionsEffort = value.contains("reasoning") && value.contains("effort")
+        let rejectsValue = value.contains("unsupported")
+            || value.contains("not supported")
+            || value.contains("invalid")
+            || value.contains("unknown")
+        return mentionsEffort && rejectsValue
     }
 
     private func validCredentials() async throws -> Credentials {

@@ -7,12 +7,13 @@ LittleRip is a compact, chrome/silver/black/white trivia game with the existing 
 - Home is intentionally minimal: the robot, **New Game**, and the durable best score.
 - The chat-bubble button is labeled **Back to menu**. One tap immediately abandons the current run, cancels generation/timers/feedback, clears transient state, and returns home without confirmation or starting another game. Best score is preserved. A stale response from a cancelled request cannot re-enter the run.
 - In-game UI is limited to score, best, streak, answered count, category, difficulty, timer, next reward, one question, and exactly four shuffled answer buttons.
-- Luna returns one strictly validated JSON question with exactly four unique answer choices, one correct index, a short explanation, an implication, and a category. Choices are shuffled on-device while preserving the correct answer.
+- Luna returns one strictly validated JSON question with exactly four unique answer choices, one correct index, a concise explanation, and a category. Choices are shuffled on-device while preserving the correct answer.
 - The central theme is understanding what is really going on in the world. Categories intentionally rotate across human nature/psychology, history/civilizations, natural and cultural geography, economics/incentives, power/institutions, technology/AI/intelligence, science/math/energy, epistemology/philosophy, and conditional possible futures. Questions seek mechanisms and first-principles connections rather than cheap trivia or repeated physics.
 - The inspiration range may include Einstein, Ilya Sutskever, Schopenhauer, Elon Musk, Sam Altman, Freemasonry, Peter Thiel, Freud, Yuval Noah Harari, and Graham Hancock only as intellectual context—not celebrity biographies, impersonation, endorsements, conspiracy-as-fact, or claims about what a person believes.
 - Warm-up questions are genuinely simple. Difficulty then progresses through Foundation, Application, Systems, and Frontier. Established facts must have one defensible answer; contested ideas are attributed as theories; future questions test conditional causal mechanisms rather than certain predictions or unavailable current news. “Derive the equation” prompts select a derivation step/equation and never require text entry.
-- Correct answers briefly show the explanation and implication, then automatically load the next question. Wrong answers and time expiration end the run and reveal the correct answer, explanation, implication, score, and **New Game**.
+- Correct answers show brief points feedback, then automatically load the next question. Wrong answers and time expiration end the run and reveal the correct answer, a straightforward explanation, score, and **New Game**.
 - Network, authentication, cancellation, or malformed/invalid responses are retryable loading errors, never wrong answers and never score penalties. Malformed model payloads are retried up to three times. If authentication is needed, the game shows only a contextual sign-in affordance; there is no permanent settings UI.
+- Trivia requests send reasoning effort `none` first; if the endpoint explicitly rejects that value, the client retries the same request with `low`. Other assistant/research modes keep their existing reasoning settings. No live latency measurement was claimed.
 
 ## Scoring and timer
 
@@ -34,7 +35,7 @@ The SmartRent flow remains independent of the game and its existing lock-screen 
 
 ## Source layout
 
-- **`LittleRip/TriviaGameModel.swift`** — typed question/category contract, bounded JSON/wrapper parsing, validation, shuffle, difficulty, timer, and saturating score rules.
+- **`LittleRip/TriviaGameModel.swift`** — typed question/category/explanation contract, bounded JSON/wrapper parsing, validation, shuffle, difficulty, timer, and saturating score rules.
 - **`LittleRip/TriviaGameController.swift`** — main-actor game state machine, category history, return-home cancellation, stale-result guards, monotonic timer, persistence, feedback, and retry behavior.
 - **`LittleRip/ChatGPTCodexClient.swift`** — existing authenticated ChatGPT client, now using `gpt-5.6-luna` and the world-understanding question contract.
 - **`LittleRip/ContentView.swift`** — minimal SwiftUI game experience with preserved robot styling and contextual sign-in only when required.

@@ -61,7 +61,6 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
     let choices: [String]
     let correctIndex: Int
     let explanation: String
-    let implication: String
     let difficulty: TriviaDifficulty
     let category: TriviaCategory
 
@@ -71,7 +70,6 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         choices: [String],
         correctIndex: Int,
         explanation: String,
-        implication: String,
         difficulty: TriviaDifficulty,
         category: TriviaCategory = .science
     ) {
@@ -80,7 +78,6 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         self.choices = choices
         self.correctIndex = correctIndex
         self.explanation = explanation
-        self.implication = implication
         self.difficulty = difficulty
         self.category = category
     }
@@ -121,9 +118,6 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         guard (10...500).contains(explanation.trimmingCharacters(in: .whitespacesAndNewlines).count) else {
             throw TriviaQuestionValidationError.invalidExplanationLength
         }
-        guard (10...500).contains(implication.trimmingCharacters(in: .whitespacesAndNewlines).count) else {
-            throw TriviaQuestionValidationError.invalidImplicationLength
-        }
         if let expectedDifficulty, difficulty != expectedDifficulty {
             throw TriviaQuestionValidationError.unexpectedDifficulty
         }
@@ -143,7 +137,6 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
             choices: shuffled.map(\.answer),
             correctIndex: newCorrectIndex,
             explanation: explanation,
-            implication: implication,
             difficulty: difficulty,
             category: category
         )
@@ -162,7 +155,6 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
     case duplicateChoices
     case duplicateQuestion
     case invalidExplanationLength
-    case invalidImplicationLength
     case unexpectedDifficulty
 
     var errorDescription: String? {
@@ -178,7 +170,6 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
         case .duplicateChoices: return "Luna returned duplicate choices."
         case .duplicateQuestion: return "Luna repeated a question from this run."
         case .invalidExplanationLength: return "Luna returned an unusable explanation."
-        case .invalidImplicationLength: return "Luna returned an unusable implication."
         case .unexpectedDifficulty: return "Luna returned the wrong difficulty for this round."
         }
     }
@@ -193,7 +184,6 @@ struct TriviaQuestionParser {
         let choices: [String]
         let correctIndex: Int
         let explanation: String
-        let implication: String
         let difficulty: TriviaDifficulty
         let category: TriviaCategory
     }
@@ -224,7 +214,6 @@ struct TriviaQuestionParser {
                     choices: payload.choices,
                     correctIndex: payload.correctIndex,
                     explanation: payload.explanation,
-                    implication: payload.implication,
                     difficulty: payload.difficulty,
                     category: payload.category
                 )

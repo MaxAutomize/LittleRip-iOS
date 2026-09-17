@@ -84,7 +84,7 @@ struct TriviaCoreTests {
     private static func testParsingAndShuffle() {
         let fenced = """
         ```json
-        {"id":"warm-1","question":"What is 2 + 2?","choices":["3","4","5","22"],"correctIndex":1,"explanation":"Adding two and two gives four.","implication":"Simple arithmetic is a reliable first step.","difficulty":"warmup","category":"science"}
+        {"id":"warm-1","question":"What is 2 + 2?","choices":["3","4","5","22"],"correctIndex":1,"explanation":"Adding two and two gives four.","difficulty":"warmup","category":"science"}
         ```
         """
         let parsed = try! TriviaQuestionParser.parse(fenced, expectedDifficulty: .warmup)
@@ -98,7 +98,7 @@ struct TriviaCoreTests {
         precondition(Set(shuffled.choices) == Set(parsed.choices))
 
         let duplicate = """
-        {"question":"This prompt is long enough to validate.","choices":["same","same","third","fourth"],"correctIndex":0,"explanation":"This explanation is long enough.","implication":"This implication is long enough.","difficulty":"warmup","category":"science"}
+        {"question":"This prompt is long enough to validate.","choices":["same","same","third","fourth"],"correctIndex":0,"explanation":"This explanation is long enough.","difficulty":"warmup","category":"science"}
         """
         do {
             _ = try TriviaQuestionParser.parse(duplicate, expectedDifficulty: .warmup)
@@ -239,7 +239,6 @@ struct TriviaCoreTests {
             choices: choices,
             correctIndex: correctIndex,
             explanation: "The underlying rule gives a clear answer from the supplied quantities.",
-            implication: "Starting from a small invariant makes the larger idea easier to reason about.",
             difficulty: difficulty
         )
     }

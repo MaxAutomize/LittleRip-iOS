@@ -365,7 +365,6 @@ struct ContentView: View {
                     .font(.system(size: 13, weight: .bold, design: .monospaced))
                     .foregroundStyle(eyeGreen)
             }
-            explanationContent
         }
         .padding(16)
         .background(eyeGreen.opacity(0.10), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
@@ -425,7 +424,7 @@ struct ContentView: View {
 
     private var explanationContent: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text("WHY")
+            Text("EXPLANATION")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .tracking(1.1)
                 .foregroundStyle(silverDim)
@@ -433,10 +432,6 @@ struct ContentView: View {
                 Text(question.explanation)
                     .font(.system(size: 14, design: .rounded))
                     .foregroundStyle(.white.opacity(0.82))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(question.implication)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(eyeGreen.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

@@ -328,6 +328,8 @@ final class TriviaGameController: ObservableObject {
         phase = .gameOver
     }
 
+    /// Correct feedback is intentionally brief, then the next question loads
+    /// automatically. The timer is not running during this feedback phase.
     private func scheduleFeedbackAdvance(for token: UUID) {
         feedbackTask?.cancel()
         feedbackTask = Task { @MainActor [weak self] in
@@ -339,6 +341,7 @@ final class TriviaGameController: ObservableObject {
             guard let self, token == self.roundToken, self.phase == .feedback else { return }
             self.currentQuestion = nil
             self.selectedAnswerIndex = nil
+            self.lastResult = nil
             self.phase = .generating
             self.requestQuestion(for: token)
         }
