@@ -74,11 +74,11 @@ struct TriviaCoreTests {
 
     private static func testPromptContract() {
         let voice = TriviaQuestionPrompt.system
-        precondition(voice.contains("There is no topic list"))
-        precondition(voice.contains("recent-memory list"))
-        precondition(voice.contains("difficulty ladder"))
+        precondition(voice.contains("There is no fixed topic list"))
+        precondition(voice.contains("no local memory"))
+        precondition(voice.contains("There is no increasing difficulty"))
         precondition(voice.contains("The Birth of Tragedy"))
-        precondition(voice.contains("Most questions need no calculation"))
+        precondition(voice.contains("Use numbers, quantities"))
 
         let context = TriviaQuestionBlueprint()
         let prompt = TriviaQuestionPrompt.make(blueprint: context, departurePoint: "tectonic glass")

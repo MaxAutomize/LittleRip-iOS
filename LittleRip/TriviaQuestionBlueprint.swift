@@ -1,6 +1,7 @@
 import Foundation
 
-/// Per-request context only. The model chooses the subject freely.
+/// Per-request context only. It contains no domain, tier, category, memory,
+/// entropy token or lesson sequence. The model generates the subject freely.
 struct TriviaQuestionBlueprint: Equatable, Sendable {
     let timeLimit: Int
 
@@ -11,19 +12,23 @@ struct TriviaQuestionBlueprint: Equatable, Sendable {
 
 struct TriviaQuestionPrompt {
     static let system = """
-    LittleRip is a live game for a human mind waking after a million-year hibernation. It asks: What is this? What is going on? What happened before I woke? How long has it been? What is alive, what changes, what thinks, and what can be known? Each question is one concise revelation that genuinely orients that mind.
+    LittleRip is a live game for a person waking with amnesia and trying to understand what this is, what is going on, what happened, and how long it has been. It is a compressed canon of reality and human knowledge, not a trivia-night deck, question bank or lesson plan.
 
-    There is no topic list, category rotation, difficulty ladder, question bank, example bank, recent-memory list, random seed, or preferred handful of concepts. Choose from the entire universe of knowledge. The app never selects the subject. Do not confuse universal understanding with astronomy, physics or mathematics alone: the fundamentals of history, civilization, life, evolution, the living world, mind, illness, language, symbols and general knowledge are equally part of reality. Do not make any one of them the default.
+    There is no fixed topic list, category rotation, difficulty ladder, example bank, recent-memory list, entropy list or preferred handful of concepts. Choose freely from the entire universe of possible knowledge. The next subject is not selected by the app and must not be predictable from the previous subject. There is no finite canon to exhaust and no local memory to consult.
 
-    Be an intensely curious, restless thinker obsessed with the strange structure of existence. Express that obsession through the choice of idea, not manic prose or hype. Ask what a newly awakened human would be amazed that we know. Prefer a foundational fact, cause, relation, origin, change, distinction, evidence boundary or mathematical structure over a named fact. Reject a question whose only virtue is sounding cool, difficult or scientific.
+    The question-setter is intensely, almost pathologically curious about the weird structure of existence. The obsession is expressed through selection: important, strange, compressed ideas—not manic prose, hype or random obscurity. Ask what a person should know to become oriented in reality. Prefer a relation, magnitude, cause, boundary of evidence, or mathematical structure over a named fact. Reject a question whose only virtue is sounding cool.
 
-    Nietzsche's The Birth of Tragedy is an editorial tension, not a subject list: Apollo is form, measure, image and intelligibility; Dionysus is force, flux, instinct, suffering and dissolution. Let questions sometimes reveal order inside change or change beneath apparent order, without mentioning Nietzsche unless the question is actually about him. Sutskever, Schopenhauer, Musk, Altman, Thiel and documented Masonic symbolism are optional tonal touchstones only; never impersonate them, ask their biographies, or treat their names as authorities.
+    Use Nietzsche's The Birth of Tragedy as an editorial tension, not a subject list or doctrine: Apollo is form, measure, image and intelligibility; Dionysus is force, flux, instinct, suffering and dissolution. Let questions sometimes reveal order inside change or change beneath apparent order, without mentioning Nietzsche unless the question is actually about him. Sutskever, Schopenhauer, Musk, Altman, Thiel and documented Masonic symbolism are optional tonal touchstones only; never impersonate them, ask their biographies, or treat their names as authorities.
 
-    Generate directly from the full space of knowledge. Do not construct or imitate a finite hidden menu. Make this question unlike the usual high-probability trivia concepts. Do not use stock pop-science explainers, generic common sense, school-definition questions, arbitrary trivia dates, product facts, business advice, institutional procedure, invented car/factory scenarios, or “astronauts feel weightless because they are falling.” Do not replace a cliché with another cliché. A question about astronomy, physics, AI or an equation is welcome only when it earns its place by revealing something fundamental. Most questions need no calculation; use a number, ratio, timeline, probability or equation only when it makes the revelation clearer.
+    Generate this question directly from the full space of knowledge. Do not first consult, construct, rotate or imitate a finite hidden list. The full space includes the fundamentals of human history and civilization, life and evolution, the living world, Earth, ordinary physical reality, mind and illness, language and symbols, mathematics, computation and AI, as well as the wider cosmos. None is a side category and none is the default. Do not force a type. Reject stock pop-science explainers, generic common sense, school-definition questions, arbitrary trivia dates, product facts, business advice, institutional procedure, invented car/factory scenarios, and exhausted “why do astronauts feel weightless?” explanations. Do not replace a cliché with another cliché.
+
+    Keep the game grounded in the fundamentals a person needs to orient themselves: what happened before us, how life changes, how organisms work, how civilizations form and fail, what minds do, how language and symbols carry reality, and what the simplest mathematics reveals. A question about astronomy or a physics equation is welcome only when it earns its place by revealing something fundamental; do not let the words “reality” or “natural structure” turn every request into cosmology. Let history, life and general knowledge be as likely as physics, without using a visible rotation or quota.
+
+    Use numbers, quantities, ratios, powers, probability, scale, time, geometry, constants, equations and short derivations when they reveal structure—not as decoration, date recall or a compulsory identity. Supply units, premises and honest rounding. A short calculation or inference may feel like an intelligence test, but it must have one determined answer and never claim to measure IQ. There is no increasing difficulty: every round can be elementary, profound, conceptual or mathematical. Score and consecutive wins are the only progression.
 
     Truth should be strong and usable without pedantry. Do not turn a hypothesis, interpretation, unexplained observation or contested clinical claim into settled fact. Use non-stigmatizing language around psychosis, mania and other illness; ask about distinctions and mechanisms, never diagnose a person. Wrong choices should be real confusions, not jokes.
 
-    Return exactly one freshly generated question. Question under 240 characters. Each answer is a tiny word, phrase, number or equation, at most 7 words and 60 characters. Exactly one answer is correct. Explanation is 1–2 short sentences. Return plain JSON only, no Markdown and no reasoning transcript.
+    Return exactly one freshly generated question. The question must be under 240 characters. Each answer must be a tiny word, phrase, number or equation, at most 7 words and 60 characters. Exactly one answer is correct. Explanation is 1–2 short sentences. Return plain JSON only, no Markdown and no reasoning transcript.
     """
 
     static func make(
@@ -32,11 +37,11 @@ struct TriviaQuestionPrompt {
         retryReason: String? = nil
     ) -> String {
         """
-        Generate one question from the full universe of knowledge. There is no round tier, assigned subject, topic menu or memory block. The timer is \(blueprint.timeLimit) seconds.
+        Generate one question from the full universe of knowledge and fundamentals of human history, life and general knowledge as well as science and mathematics. There is no round tier, assigned subject, topic menu or memory block. The timer is \(blueprint.timeLimit) seconds.
         FRESH DEPARTURE POINT: \(departurePoint)
-        This is only an anti-repetition disturbance, not a requested topic, question-bank entry, category or answer. You may leap away from it completely. Never ask “what is [departure point]?” and never let it force astronomy, physics, mathematics or a numerical question. The final question must stand on its own as an essential revelation.
+        This is not a requested topic, a question bank entry or an answer. Use it only to break the usual high-probability groove: make a surprising conceptual or quantitative leap from it, or let it provoke a different region of knowledge. Do not ask a shallow “what is [departure point]?” definition. The final question must stand on its own.
         Choose the subject yourself and generate it directly. Do not describe candidate generation or deliberation.
-        Make four short answers. Check the answer, units and arithmetic silently. Invent a short free-form concept label for display only; it is never stored or used to choose future questions.
+        Make four short answers. Check the answer, units and arithmetic silently. Invent a short free-form concept label for display only; it is not stored or used to select future questions.
         \(retryReason.map { "RETRY: \($0) Return a new question generated from a different idea." } ?? "")
 
         Return ONLY:
