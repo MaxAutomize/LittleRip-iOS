@@ -38,7 +38,6 @@ enum TriviaCategory: String, Codable, CaseIterable, Equatable, Sendable {
     case technology = "technology"
     case science = "science"
     case philosophy = "philosophy"
-    case futures = "futures"
 
     var title: String {
         switch self {
@@ -50,7 +49,21 @@ enum TriviaCategory: String, Codable, CaseIterable, Equatable, Sendable {
         case .technology: return "Technology"
         case .science: return "Science & Math"
         case .philosophy: return "Philosophy"
-        case .futures: return "Possible Futures"
+        }
+    }
+
+    /// A one-line suggestion of the kinds of concrete topics that live here.
+    /// The model picks freely; this is a compass, not a constraint.
+    var topicHint: String {
+        switch self {
+        case .humanNature: return "desire, dopamine, imitation, attention, cooperation, reward, fear, memory"
+        case .history: return "deep history, civilizations, farming, writing, migration, archaeology, religion, symbols"
+        case .geography: return "watersheds, mountains, climate, soils, ports, trade routes, settlement, tectonics"
+        case .economics: return "incentives, scarcity, opportunity cost, externalities, coordination, substitution, risk"
+        case .institutions: return "power, law, voting, principal-agent, standards, common resources, credible commitments"
+        case .technology: return "AI, computation, bits, networks, error correction, compression, training, inference, energy"
+        case .science: return "physics, chemistry, biology, energy, materials, evolution, math, calculus, trig, constants"
+        case .philosophy: return "epistemology, desire, identity, falsifiability, mind, will, ethics, consciousness, models"
         }
     }
 }
@@ -82,8 +95,8 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         self.category = category
     }
 
-    /// A normalized prompt is enough to avoid repeating the same idea in one run,
-    /// while leaving Luna free to vary wording and answer order.
+    /// Exact normalized-text deduplication, not a semantic/factual verifier.
+    /// Prompt exclusions separately discourage rewording an earlier idea.
     var fingerprint: String {
         prompt
             .lowercased()
@@ -94,7 +107,10 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
 
     var correctAnswer: String { choices[correctIndex] }
 
-    func validated(expectedDifficulty: TriviaDifficulty? = nil) throws -> TriviaQuestion {
+    func validated(
+        expectedDifficulty: TriviaDifficulty? = nil,
+        expectedCategory: TriviaCategory? = nil
+    ) throws -> TriviaQuestion {
         let cleanedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (12...420).contains(cleanedPrompt.count) else {
             throw TriviaQuestionValidationError.invalidPromptLength
@@ -120,6 +136,9 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         }
         if let expectedDifficulty, difficulty != expectedDifficulty {
             throw TriviaQuestionValidationError.unexpectedDifficulty
+        }
+        if let expectedCategory, category != expectedCategory {
+            throw TriviaQuestionValidationError.unexpectedCategory
         }
         guard !fingerprint.isEmpty else {
             throw TriviaQuestionValidationError.invalidPromptLength
@@ -156,6 +175,7 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
     case duplicateQuestion
     case invalidExplanationLength
     case unexpectedDifficulty
+    case unexpectedCategory
 
     var errorDescription: String? {
         switch self {
@@ -171,6 +191,7 @@ enum TriviaQuestionValidationError: LocalizedError, Equatable {
         case .duplicateQuestion: return "Luna repeated a question from this run."
         case .invalidExplanationLength: return "Luna returned an unusable explanation."
         case .unexpectedDifficulty: return "Luna returned the wrong difficulty for this round."
+        case .unexpectedCategory: return "Luna returned the wrong category for this round."
         }
     }
 }
@@ -188,7 +209,11 @@ struct TriviaQuestionParser {
         let category: TriviaCategory
     }
 
-    static func parse(_ text: String, expectedDifficulty: TriviaDifficulty) throws -> TriviaQuestion {
+    static func parse(
+        _ text: String,
+        expectedDifficulty: TriviaDifficulty,
+        expectedCategory: TriviaCategory? = nil
+    ) throws -> TriviaQuestion {
         guard text.utf8.count <= 12_000 else {
             throw TriviaQuestionValidationError.responseTooLarge
         }
@@ -217,7 +242,7 @@ struct TriviaQuestionParser {
                     difficulty: payload.difficulty,
                     category: payload.category
                 )
-                return try question.validated(expectedDifficulty: expectedDifficulty)
+                return try question.validated(expectedDifficulty: expectedDifficulty, expectedCategory: expectedCategory)
             } catch {
                 lastError = error
             }

@@ -27,6 +27,7 @@
 		B75C7F101E29DBC36DF1BC2A /* VoiceInputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522245F8739EEB42361AF721 /* VoiceInputManager.swift */; };
 		BB7E7F22245E7F4238401196 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A3F173DF083E9E5A56A4CB /* LocationService.swift */; };
 		CEB77D2BF537126D24C05DA3 /* StartVoiceAssistantIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EDC821BFAF1718275586159 /* StartVoiceAssistantIntent.swift */; };
+		D34A1C4568937DA6EBDF93DB /* TriviaQuestionBlueprint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9814D0A6DE3803D2A274C04E /* TriviaQuestionBlueprint.swift */; };
 		DA0E2F9FF8C030E6B237D152 /* ChatGPTCodexClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7B67EE7EC825F5FE56FDA4 /* ChatGPTCodexClient.swift */; };
 /* End PBXBuildFile section */
 
@@ -72,6 +73,7 @@
 		8676649E91364A8825D554A3 /* LittleRip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LittleRip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		898D024CFCCC0375758B93FA /* LittleRipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LittleRipApp.swift; sourceTree = "<group>"; };
 		92F41677AA6CFF8713F2E088 /* TriviaGameController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriviaGameController.swift; sourceTree = "<group>"; };
+		9814D0A6DE3803D2A274C04E /* TriviaQuestionBlueprint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriviaQuestionBlueprint.swift; sourceTree = "<group>"; };
 		ABB64F40AAA8437C14417195 /* UnlockFrontDoorIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockFrontDoorIntent.swift; sourceTree = "<group>"; };
 		CC7E630EF66A1853978FC60E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DE14C924A0FDD00983D3DC3A /* LittleRipWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LittleRipWidget.swift; sourceTree = "<group>"; };
@@ -115,6 +117,7 @@
 				204E14A5B9C9BFF1A23B43B5 /* MessageComposeService.swift */,
 				92F41677AA6CFF8713F2E088 /* TriviaGameController.swift */,
 				3BE62C61C89A287DF6D08708 /* TriviaGameModel.swift */,
+				9814D0A6DE3803D2A274C04E /* TriviaQuestionBlueprint.swift */,
 				522245F8739EEB42361AF721 /* VoiceInputManager.swift */,
 				F726F4174CAC055A3FB892EF /* WebSearchClient.swift */,
 			);
@@ -266,6 +269,7 @@
 				AA69D98912F9783B84C18F7A /* StartVoiceAssistantIntent.swift in Sources */,
 				6931E1C4EAAE62FAA3C2E41C /* TriviaGameController.swift in Sources */,
 				071E43FA48BE6F761C6B508A /* TriviaGameModel.swift in Sources */,
+				D34A1C4568937DA6EBDF93DB /* TriviaQuestionBlueprint.swift in Sources */,
 				4C07CB33A7D9F05BA132EDC4 /* UnlockFrontDoorIntent.swift in Sources */,
 				B75C7F101E29DBC36DF1BC2A /* VoiceInputManager.swift in Sources */,
 				9C6F9D17CA47C30597ED70A5 /* WebSearchClient.swift in Sources */,

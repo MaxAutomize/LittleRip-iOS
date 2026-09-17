@@ -13,6 +13,7 @@ private final class FakeTriviaProvider: TriviaQuestionProviding {
     var delays: [UInt64]
     var ignoreCancellation: Bool
     private(set) var callCount = 0
+    private(set) var assignments: [TriviaQuestionBlueprint] = []
 
     init(results: [Result<TriviaQuestion, Error>], delays: [UInt64] = [], ignoreCancellation: Bool = false) {
         self.results = results
@@ -21,17 +22,14 @@ private final class FakeTriviaProvider: TriviaQuestionProviding {
     }
 
     func generateTriviaQuestion(
-        difficulty: TriviaDifficulty,
-        answeredCount: Int,
-        excludedFingerprints: Set<String>,
-        recentCategories: [TriviaCategory]
+        blueprint: TriviaQuestionBlueprint,
+        excludedFingerprints: Set<String>
     ) async throws -> TriviaQuestion {
+        assignments.append(blueprint)
         let index = callCount
         callCount += 1
         let delay = index < delays.count ? delays[index] : 0
         guard !results.isEmpty else { throw TestError() }
-        // Reserve the response before the delay so a cancelled request cannot
-        // accidentally make the replacement request receive the stale payload.
         let result = results.removeFirst()
         if delay > 0 {
             if ignoreCancellation {
@@ -59,6 +57,8 @@ struct TriviaCoreTests {
     static func main() async {
         testRules()
         testParsingAndShuffle()
+        testEditorialPlan()
+        testPromptContract()
         await testStateMachine()
         print("TriviaCoreTests: all deterministic checks passed")
     }
@@ -114,6 +114,65 @@ struct TriviaCoreTests {
             preconditionFailure("malformed JSON must be rejected")
         } catch {
             // expected
+        }
+    }
+
+    private static func testEditorialPlan() {
+        // Verify balanced coverage: every domain appears before any repeats too much.
+        var openers = Set<TriviaCategory>()
+        for seed in 0..<100 {
+            var rng = FixedRNG(state: UInt64(seed + 1))
+            var history: [TriviaCategory] = []
+            for count in 0..<100 {
+                let tier = TriviaGameRules.difficulty(forAnsweredCount: count)
+                let plan = TriviaEditorialPlan.make(difficulty: tier, answeredCount: count, categoryHistory: history, using: &rng)
+                precondition(!history.suffix(2).contains(plan.category))
+                precondition(plan.difficulty == tier)
+                precondition(plan.answeredCount == count)
+                precondition(plan.timeLimit == TriviaGameRules.timeLimit(for: tier, answeredCount: count))
+                if count == 0 { openers.insert(plan.category) }
+                history.append(plan.category)
+                // Every domain appears in a full cycle.
+                if count == 13 { precondition(Set(history) == Set(TriviaCategory.allCases)) }
+                // Long runs keep broad coverage.
+                if count >= 18 { precondition(Set(history.suffix(18)) == Set(TriviaCategory.allCases)) }
+            }
+        }
+        precondition(openers.count == TriviaCategory.allCases.count)
+
+        // Negative answeredCount clamps to 0.
+        var a = FixedRNG(), b = FixedRNG()
+        precondition(TriviaEditorialPlan.make(difficulty: .warmup, answeredCount: -1, categoryHistory: [], using: &a)
+                     == TriviaEditorialPlan.make(difficulty: .warmup, answeredCount: 0, categoryHistory: [], using: &b))
+    }
+
+    private static func testPromptContract() {
+        var rng = FixedRNG()
+        var history: [TriviaCategory] = []
+        var review: [String] = []
+        for count in 0..<20 {
+            let plan = TriviaEditorialPlan.make(
+                difficulty: TriviaGameRules.difficulty(forAnsweredCount: count),
+                answeredCount: count, categoryHistory: history, using: &rng
+            )
+            history.append(plan.category)
+            let prompt = TriviaQuestionPrompt.make(blueprint: plan, excludedFingerprints: ["earlier idea"])
+            precondition(prompt.contains(plan.category.rawValue))
+            precondition(prompt.contains(plan.category.topicHint))
+            precondition(prompt.contains("Player has \(plan.timeLimit) seconds"))
+            precondition(prompt.contains("\"category\":\"\(plan.category.rawValue)\""))
+            precondition(prompt.contains("\"difficulty\":\"\(plan.difficulty.rawValue)\""))
+            precondition(prompt.contains("correctIndex is zero-based"))
+            precondition(prompt.contains("earlier idea"))
+            precondition(prompt.utf8.count < 4_000) // prompt stays compact
+            let retried = TriviaQuestionPrompt.make(blueprint: plan, excludedFingerprints: [], retryReason: "wrong category")
+            precondition(retried.contains("Previous output rejected: wrong category"))
+            if [0, 3, 5, 7, 10, 14, 19].contains(count) {
+                review.append("ROUND \(count + 1): \(plan.category.rawValue)\n\(prompt)")
+            }
+        }
+        if CommandLine.arguments.contains("--dump-prompts") {
+            try! review.joined(separator: "\n\n---\n\n").write(toFile: "/tmp/littlerip-prompts.txt", atomically: true, encoding: .utf8)
         }
     }
 
@@ -189,6 +248,8 @@ struct TriviaCoreTests {
         retryGame.retryGeneration()
         await waitUntil { retryGame.phase == .answering }
         precondition(retryGame.currentQuestion?.id == "q5")
+        precondition(retryProvider.assignments.count == 2)
+        precondition(retryProvider.assignments[0] == retryProvider.assignments[1])
 
         let staleProvider = FakeTriviaProvider(results: [.success(q1), .success(q3)], delays: [400_000_000, 0])
         let staleGame = TriviaGameController(provider: staleProvider, defaults: suite, timeLimitOverride: { _, _ in 1 })

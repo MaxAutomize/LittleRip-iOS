@@ -33,7 +33,7 @@ enum ChatGPTCodexError: LocalizedError {
         case .missingAccountID:
             return "The ChatGPT login did not include an account ID."
         case .emptyResponse:
-            return "GPT-5.6 Luna returned an empty response."
+            return "LittleRip could not generate a question. Try again."
         }
     }
 }
@@ -219,75 +219,27 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
         return Self.parseAssistantActionPlan(from: response.answer)
     }
 
-    /// Generates a question through the authenticated Luna request path. Invalid
-    /// model payloads get a bounded retry; auth/network failures are surfaced to
-    /// the game as retryable errors and never count as an answer.
+    /// Generates a question through the authenticated model request path.
+    /// Invalid model payloads get a bounded retry; auth/network failures are
+    /// surfaced to the game as retryable errors and never count as an answer.
     func generateTriviaQuestion(
-        difficulty: TriviaDifficulty,
-        answeredCount: Int,
-        excludedFingerprints: Set<String>,
-        recentCategories: [TriviaCategory]
+        blueprint: TriviaQuestionBlueprint,
+        excludedFingerprints: Set<String>
     ) async throws -> TriviaQuestion {
-        let difficultyPrompt = difficulty.title.uppercased()
-        let suggestedCategory = TriviaCategory.allCases[answeredCount % TriviaCategory.allCases.count]
-        let recentCategoryNames = recentCategories.map(\.rawValue).joined(separator: ", ")
-        let excluded = excludedFingerprints.isEmpty
-            ? "none"
-            : excludedFingerprints.prefix(12).joined(separator: " | ")
         var lastValidationError: TriviaQuestionValidationError = .malformedJSON
 
         for attempt in 0..<3 {
-            let prompt = """
-            Generate exactly one LittleRip world-understanding trivia question.
-            Requested tier: \(difficulty.rawValue) (\(difficultyPrompt)). Questions answered in this run: \(answeredCount).
-            Suggested category for a deliberate mix: \(suggestedCategory.rawValue).
-            Recent categories to avoid repeating without a strong connection: \(recentCategoryNames.isEmpty ? "none" : recentCategoryNames)
-            Never repeat any prior question fingerprint listed here: \(excluded)
-            The central theme is: to be good at this game, understand what is
-            really going on in the world. Rotate intentionally across human nature
-            and psychology, history and civilizations, cultural/natural geography,
-            economics and incentives, power and institutions, technology/AI and
-            intelligence, science/math and energy, epistemology/philosophy, and
-            conditional possible futures. Connect domains through mechanisms and
-            first principles instead of making cheap trivia or repeating physics.
-            For warmup, make the idea genuinely simple enough to answer in seconds
-            (a clear observation, everyday incentive, basic map/history fact, or
-            simplest equation). Increase depth only as the answered count and tier
-            increase.
-            The inspiration range may include Einstein, Ilya Sutskever, Schopenhauer,
-            Elon Musk, Sam Altman, Freemasonry, Peter Thiel, Freud, Yuval Noah
-            Harari, or Graham Hancock only as intellectual context. Do not make
-            celebrity biographies, impersonation, endorsements, conspiracy claims,
-            or claims about what any person believes.
-            Established facts must have exactly one defensible answer. If an idea
-            is contested, attribute it as a theory and make the distinction clear.
-            Future questions must test conditional causal reasoning and mechanisms,
-            not certain predictions or current facts requiring live news.
-            Include some "derive the equation" questions, but ask the player to
-            select the correct derivation step or equation; never request typed input.
-            Do not promise that an AI-generated explanation is certainly true.
+            let prompt = TriviaQuestionPrompt.make(
+                blueprint: blueprint,
+                excludedFingerprints: excludedFingerprints,
+                retryReason: attempt == 0 ? nil : lastValidationError.errorDescription
+            )
 
-            Return ONLY this JSON object, with no Markdown or prose before/after it:
-            {"id":"stable-short-id","question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"brief reason","difficulty":"\(difficulty.rawValue)","category":"\(suggestedCategory.rawValue)"}
-            The choices must be exactly four, mutually distinct, plausible, and
-            concise. correctIndex is zero-based. explanation must be brief,
-            readable, and explain why the answer is correct. Use plain Unicode
-            math, not LaTeX.
-            """
-
-            let response: ChatGPTResult
-            do {
-                // Luna's lowest reasoning setting is attempted first. If this
-                // account/model rejects `none`, retry once with the lowest
-                // conventional fallback rather than failing the game.
-                response = try await ask(prompt: prompt, mode: .trivia, requestedReasoningEffort: "none")
-            } catch let error where Self.isUnsupportedReasoningEffort(error) {
-                response = try await ask(prompt: prompt, mode: .trivia, requestedReasoningEffort: "low")
-            }
+            let response = try await ask(prompt: prompt, mode: .trivia, requestedReasoningEffort: "medium")
             do {
                 let question = try TriviaQuestionParser.parse(
                     response.answer,
-                    expectedDifficulty: difficulty
+                    expectedDifficulty: blueprint.difficulty
                 )
                 guard !excludedFingerprints.contains(question.fingerprint) else {
                     lastValidationError = .duplicateQuestion
@@ -375,14 +327,7 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
             Resolve notification dates from the supplied current local date, time, and time zone. Treat “at 3” or “at 3:15” as the next future 3:00:00 or 3:15:00 in local time; always include seconds and use 00 unless explicitly supplied. The action must be none unless the request is direct.
             """
         case .trivia:
-            systemPrompt = """
-            You are generating one self-contained LittleRip world-understanding
-            game question. Follow the exact JSON contract in the user prompt.
-            Never answer with prose, Markdown, a code fence, or a second question.
-            Keep established facts defensible and explanations appropriately
-            qualified; an AI-generated explanation is educational context, not a
-            guarantee of factual correctness.
-            """
+            systemPrompt = TriviaQuestionPrompt.system
         }
 
         let historyContext = history.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : """
@@ -495,14 +440,14 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
             case "response.completed", "response.done":
                 completed = true
             case "response.incomplete":
-                throw ChatGPTCodexError.invalidResponse("GPT-5.6 Luna stopped before completing its response.")
+                throw ChatGPTCodexError.invalidResponse("The model stopped before completing its response.")
             case "response.failed":
                 let response = event["response"] as? [String: Any]
                 let error = response?["error"] as? [String: Any]
-                let message = error?["message"] as? String ?? "GPT-5.6 Luna request failed."
+                let message = error?["message"] as? String ?? "The model request failed."
                 throw ChatGPTCodexError.invalidResponse(message)
             case "error":
-                let message = event["message"] as? String ?? "GPT-5.6 Luna request failed."
+                let message = event["message"] as? String ?? "The model request failed."
                 throw ChatGPTCodexError.invalidResponse(message)
             default:
                 break
@@ -603,17 +548,6 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
             seen.insert(key)
             return cleaned
         }
-    }
-
-    private static func isUnsupportedReasoningEffort(_ error: Error) -> Bool {
-        guard case ChatGPTCodexError.invalidResponse(let message) = error else { return false }
-        let value = message.lowercased()
-        let mentionsEffort = value.contains("reasoning") && value.contains("effort")
-        let rejectsValue = value.contains("unsupported")
-            || value.contains("not supported")
-            || value.contains("invalid")
-            || value.contains("unknown")
-        return mentionsEffort && rejectsValue
     }
 
     private func validCredentials() async throws -> Credentials {
