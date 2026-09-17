@@ -38,12 +38,12 @@ struct LittleRipGameWidgetView: View {
                     .padding(2)
             }
         }
-        .accessibilityLabel("New Luna trivia game")
+        .accessibilityLabel("New trivia game")
     }
 }
 
-/// Existing widget identifiers are retained so the installed widget updates in
-/// place, while the old voice entry is now a no-microphone New Game launcher.
+/// Existing widget identifiers are retained so installed configurations update
+/// in place; this is a no-microphone New Game launcher.
 struct LittleRipGameWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "LittleRipVoiceWidget", provider: LittleRipGameProvider()) { _ in
@@ -51,7 +51,7 @@ struct LittleRipGameWidget: Widget {
                 .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("New Game")
-        .description("Open LittleRip and start a Luna physics and mathematics trivia run.")
+        .description("Open LittleRip and start a trivia run.")
         .supportedFamilies([.accessoryCircular, .accessoryRectangular, .systemSmall])
     }
 }

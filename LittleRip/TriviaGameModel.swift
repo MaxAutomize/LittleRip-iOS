@@ -29,6 +29,32 @@ enum TriviaDifficulty: String, Codable, CaseIterable, Equatable, Sendable {
     }
 }
 
+enum TriviaCategory: String, Codable, CaseIterable, Equatable, Sendable {
+    case humanNature = "human_nature"
+    case history = "history"
+    case geography = "geography"
+    case economics = "economics"
+    case institutions = "institutions"
+    case technology = "technology"
+    case science = "science"
+    case philosophy = "philosophy"
+    case futures = "futures"
+
+    var title: String {
+        switch self {
+        case .humanNature: return "Human Nature"
+        case .history: return "History"
+        case .geography: return "Geography"
+        case .economics: return "Economics"
+        case .institutions: return "Power & Institutions"
+        case .technology: return "Technology"
+        case .science: return "Science & Math"
+        case .philosophy: return "Philosophy"
+        case .futures: return "Possible Futures"
+        }
+    }
+}
+
 struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
     let id: String
     let prompt: String
@@ -37,6 +63,7 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
     let explanation: String
     let implication: String
     let difficulty: TriviaDifficulty
+    let category: TriviaCategory
 
     init(
         id: String = UUID().uuidString,
@@ -45,7 +72,8 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         correctIndex: Int,
         explanation: String,
         implication: String,
-        difficulty: TriviaDifficulty
+        difficulty: TriviaDifficulty,
+        category: TriviaCategory = .science
     ) {
         self.id = id
         self.prompt = prompt
@@ -54,6 +82,7 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
         self.explanation = explanation
         self.implication = implication
         self.difficulty = difficulty
+        self.category = category
     }
 
     /// A normalized prompt is enough to avoid repeating the same idea in one run,
@@ -115,7 +144,8 @@ struct TriviaQuestion: Codable, Equatable, Identifiable, Sendable {
             correctIndex: newCorrectIndex,
             explanation: explanation,
             implication: implication,
-            difficulty: difficulty
+            difficulty: difficulty,
+            category: category
         )
     }
 }
@@ -165,6 +195,7 @@ struct TriviaQuestionParser {
         let explanation: String
         let implication: String
         let difficulty: TriviaDifficulty
+        let category: TriviaCategory
     }
 
     static func parse(_ text: String, expectedDifficulty: TriviaDifficulty) throws -> TriviaQuestion {
@@ -194,7 +225,8 @@ struct TriviaQuestionParser {
                     correctIndex: payload.correctIndex,
                     explanation: payload.explanation,
                     implication: payload.implication,
-                    difficulty: payload.difficulty
+                    difficulty: payload.difficulty,
+                    category: payload.category
                 )
                 return try question.validated(expectedDifficulty: expectedDifficulty)
             } catch {

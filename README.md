@@ -1,41 +1,45 @@
 # LittleRip for iOS
 
-LittleRip is a polished physics-and-mathematics trivia game built around the existing chrome/silver/black/white robot and green-eye visual language. Questions are generated dynamically by the user's authenticated ChatGPT account through **GPT-5.6 Luna**.
+LittleRip is a compact, chrome/silver/black/white trivia game with the existing robot and green-eye visual language. Each run serves four-choice questions generated dynamically through the user's authenticated ChatGPT account using **GPT-5.6 Luna**.
 
 ## Game loop
 
-- Home has one primary **New Game** action. Settings and SmartRent unlock remain available from the secondary controls.
-- Luna returns one strictly validated JSON question with exactly four unique answer choices, one correct index, a short explanation, and a grounded implication. Choices are shuffled on-device while preserving the correct answer.
-- Runs progress from genuinely simple **Warm-up** questions through Foundation, Application, Systems, and Frontier tiers. The prompt emphasizes mathematical/physical first principles, energy, probability, geometry, information, intelligence, fundamental equations, and implications—not celebrity trivia or impersonation. “Derive the equation” prompts use selectable derivation steps/equations rather than text entry.
-- Correct answers show a short readable explanation, then automatically load the next question. Wrong answers and time expiration end the run and reveal the correct answer, explanation, implication, score, and **New Game**.
-- Network, authentication, cancellation, or malformed/invalid Luna responses are retryable generation errors, never wrong answers and never score penalties. Malformed model payloads are retried up to three times.
+- Home is intentionally minimal: the robot, **New Game**, and the durable best score.
+- The chat-bubble button is labeled **Back to menu**. One tap immediately abandons the current run, cancels generation/timers/feedback, clears transient state, and returns home without confirmation or starting another game. Best score is preserved. A stale response from a cancelled request cannot re-enter the run.
+- In-game UI is limited to score, best, streak, answered count, category, difficulty, timer, next reward, one question, and exactly four shuffled answer buttons.
+- Luna returns one strictly validated JSON question with exactly four unique answer choices, one correct index, a short explanation, an implication, and a category. Choices are shuffled on-device while preserving the correct answer.
+- The central theme is understanding what is really going on in the world. Categories intentionally rotate across human nature/psychology, history/civilizations, natural and cultural geography, economics/incentives, power/institutions, technology/AI/intelligence, science/math/energy, epistemology/philosophy, and conditional possible futures. Questions seek mechanisms and first-principles connections rather than cheap trivia or repeated physics.
+- The inspiration range may include Einstein, Ilya Sutskever, Schopenhauer, Elon Musk, Sam Altman, Freemasonry, Peter Thiel, Freud, Yuval Noah Harari, and Graham Hancock only as intellectual context—not celebrity biographies, impersonation, endorsements, conspiracy-as-fact, or claims about what a person believes.
+- Warm-up questions are genuinely simple. Difficulty then progresses through Foundation, Application, Systems, and Frontier. Established facts must have one defensible answer; contested ideas are attributed as theories; future questions test conditional causal mechanisms rather than certain predictions or unavailable current news. “Derive the equation” prompts select a derivation step/equation and never require text entry.
+- Correct answers briefly show the explanation and implication, then automatically load the next question. Wrong answers and time expiration end the run and reveal the correct answer, explanation, implication, score, and **New Game**.
+- Network, authentication, cancellation, or malformed/invalid responses are retryable loading errors, never wrong answers and never score penalties. Malformed model payloads are retried up to three times. If authentication is needed, the game shows only a contextual sign-in affordance; there is no permanent settings UI.
 
 ## Scoring and timer
 
 - The first correct answer earns 100 points. Each consecutive correct answer doubles the next reward: 100, 200, 400, 800, … . Scores and additions saturate at 10,000,000 so arithmetic cannot overflow.
 - A miss resets the streak. Best score is stored in `UserDefaults` and survives relaunches.
-- Each tier has a longer base thinking window for harder questions (24/29/36/44/54 seconds). A bounded answered-count pressure term gradually tightens the window within a tier, never below 18 seconds. The timer starts only after a valid question is installed; it uses a monotonic clock, cancels on answer, and serializes answer/timeout transitions to prevent races, duplicate taps, and background-clock exploits.
-- The HUD shows current score, best score, streak, answered count, difficulty, timer, and the next reward.
+- Harder tiers have longer base windows (Warm-up/Foundation/Application/Systems/Frontier = 24/29/36/44/54 seconds). Within a tier, subtract `min(14, answeredCount / 2)`, never below 18 seconds. The timer starts only after a valid question installs.
+- Timing uses monotonic `DispatchTime`, not wall-clock time. Answer acceptance checks the deadline before locking the answer; timer callbacks and foreground reconciliation use the same deadline. Main-actor serialization prevents answer/timer races, duplicate taps, suspension/background timing exploits, stale generation, and overflow.
 
 ## Account and SmartRent
 
-ChatGPT device login, Keychain credential storage, refresh, sign-out, and security behavior remain in `ChatGPTCodexClient.swift`; no authentication values are logged. The app no longer requests microphone or location access for the game. The old voice launcher is coherently repurposed as a New Game launcher and never starts a microphone.
+ChatGPT device login, Keychain credential storage, refresh, sign-out, and security behavior remain in `ChatGPTCodexClient.swift`; authentication values are never logged. The game no longer requests microphone or location access. The former voice launcher is a no-microphone New Game launcher.
 
-The SmartRent door flow remains independent and unchanged:
+The SmartRent flow remains independent of the game and its existing lock-screen Control Widget remains functional:
 
 - **`Shared/SmartRentClient.swift`** logs in, finds the front-door `entry_control` lock, and sends the unlock command over the Phoenix websocket.
-- **`Shared/UnlockFrontDoorIntent.swift`** powers the one-tap Control Widget unlock.
+- **`Shared/UnlockFrontDoorIntent.swift`** powers the existing one-tap Control Widget.
 - SmartRent credentials remain local/shared App Group values and are never committed.
-- The existing voice widget/control identifiers are retained so installed configurations update in place; they now open a Luna New Game. The SmartRent unlock control remains separate.
+- The app UI intentionally exposes no SmartRent controls or door copy. Existing SmartRent widget credentials, storage, API, and intent code are unchanged.
 
 ## Source layout
 
-- **`LittleRip/TriviaGameModel.swift`** — typed question contract, bounded JSON/wrapper parsing, validation, shuffle, difficulty, timer, and saturating score rules.
-- **`LittleRip/TriviaGameController.swift`** — main-actor game state machine, generation cancellation/stale-result guards, monotonic timer, persistence, feedback, and retry behavior.
-- **`LittleRip/ChatGPTCodexClient.swift`** — existing authenticated ChatGPT client, now using `gpt-5.6-luna` and the strict trivia generation contract.
-- **`LittleRip/ContentView.swift`** — SwiftUI game experience and preserved account/SmartRent settings access.
-- **`LittleRipWidgetExtension/`** — New Game launcher plus preserved SmartRent unlock Control Widget.
-- **`tests/TriviaCoreTests.swift`** — deterministic standalone regression harness for game rules, parsing, shuffle, state transitions, retry, cancellation, timeout, and persistence.
+- **`LittleRip/TriviaGameModel.swift`** — typed question/category contract, bounded JSON/wrapper parsing, validation, shuffle, difficulty, timer, and saturating score rules.
+- **`LittleRip/TriviaGameController.swift`** — main-actor game state machine, category history, return-home cancellation, stale-result guards, monotonic timer, persistence, feedback, and retry behavior.
+- **`LittleRip/ChatGPTCodexClient.swift`** — existing authenticated ChatGPT client, now using `gpt-5.6-luna` and the world-understanding question contract.
+- **`LittleRip/ContentView.swift`** — minimal SwiftUI game experience with preserved robot styling and contextual sign-in only when required.
+- **`LittleRipWidgetExtension/`** — no-microphone New Game launcher plus the preserved SmartRent unlock Control Widget.
+- **`tests/TriviaCoreTests.swift`** — deterministic standalone regression harness for rules, parsing, shuffle, state transitions, retry, cancellation, return-home, timeout, and persistence.
 
 AI-generated explanations are educational context, not a guarantee of factual correctness; verify surprising claims independently.
 

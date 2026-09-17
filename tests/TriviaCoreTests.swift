@@ -11,17 +11,20 @@ private final class TestMonotonicTime {
 private final class FakeTriviaProvider: TriviaQuestionProviding {
     var results: [Result<TriviaQuestion, Error>]
     var delays: [UInt64]
+    var ignoreCancellation: Bool
     private(set) var callCount = 0
 
-    init(results: [Result<TriviaQuestion, Error>], delays: [UInt64] = []) {
+    init(results: [Result<TriviaQuestion, Error>], delays: [UInt64] = [], ignoreCancellation: Bool = false) {
         self.results = results
         self.delays = delays
+        self.ignoreCancellation = ignoreCancellation
     }
 
     func generateTriviaQuestion(
         difficulty: TriviaDifficulty,
         answeredCount: Int,
-        excludedFingerprints: Set<String>
+        excludedFingerprints: Set<String>,
+        recentCategories: [TriviaCategory]
     ) async throws -> TriviaQuestion {
         let index = callCount
         callCount += 1
@@ -30,7 +33,13 @@ private final class FakeTriviaProvider: TriviaQuestionProviding {
         // Reserve the response before the delay so a cancelled request cannot
         // accidentally make the replacement request receive the stale payload.
         let result = results.removeFirst()
-        if delay > 0 { try await Task.sleep(nanoseconds: delay) }
+        if delay > 0 {
+            if ignoreCancellation {
+                try? await Task.sleep(nanoseconds: delay)
+            } else {
+                try await Task.sleep(nanoseconds: delay)
+            }
+        }
         return try result.get()
     }
 }
@@ -75,7 +84,7 @@ struct TriviaCoreTests {
     private static func testParsingAndShuffle() {
         let fenced = """
         ```json
-        {"id":"warm-1","question":"What is 2 + 2?","choices":["3","4","5","22"],"correctIndex":1,"explanation":"Adding two and two gives four.","implication":"Simple arithmetic is a reliable first step.","difficulty":"warmup"}
+        {"id":"warm-1","question":"What is 2 + 2?","choices":["3","4","5","22"],"correctIndex":1,"explanation":"Adding two and two gives four.","implication":"Simple arithmetic is a reliable first step.","difficulty":"warmup","category":"science"}
         ```
         """
         let parsed = try! TriviaQuestionParser.parse(fenced, expectedDifficulty: .warmup)
@@ -89,7 +98,7 @@ struct TriviaCoreTests {
         precondition(Set(shuffled.choices) == Set(parsed.choices))
 
         let duplicate = """
-        {"question":"This prompt is long enough to validate.","choices":["same","same","third","fourth"],"correctIndex":0,"explanation":"This explanation is long enough.","implication":"This implication is long enough.","difficulty":"warmup"}
+        {"question":"This prompt is long enough to validate.","choices":["same","same","third","fourth"],"correctIndex":0,"explanation":"This explanation is long enough.","implication":"This implication is long enough.","difficulty":"warmup","category":"science"}
         """
         do {
             _ = try TriviaQuestionParser.parse(duplicate, expectedDifficulty: .warmup)
@@ -189,6 +198,23 @@ struct TriviaCoreTests {
         await waitUntil { staleGame.phase == .answering }
         precondition(staleGame.currentQuestion?.id == "q3")
         precondition(staleProvider.callCount == 2)
+
+        // Returning home cancels timers/feedback and makes a delayed response
+        // stale even when the provider ignores cancellation.
+        let homeProvider = FakeTriviaProvider(results: [.success(q1)], delays: [400_000_000], ignoreCancellation: true)
+        let homeGame = TriviaGameController(provider: homeProvider, defaults: suite, timeLimitOverride: { _, _ in 1 })
+        homeGame.startNewGame()
+        try? await Task.sleep(nanoseconds: 30_000_000)
+        homeGame.returnToHome()
+        precondition(homeGame.phase == .idle)
+        precondition(homeGame.currentQuestion == nil)
+        precondition(homeGame.score == 0)
+        precondition(homeGame.bestScore == 100)
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        precondition(homeGame.phase == .idle)
+        precondition(homeGame.currentQuestion == nil)
+        precondition(homeGame.secondsRemaining == 0)
+        precondition(homeProvider.callCount == 1)
     }
 
     @MainActor

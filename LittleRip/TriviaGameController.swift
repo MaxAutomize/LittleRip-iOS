@@ -6,7 +6,8 @@ protocol TriviaQuestionProviding: AnyObject {
     func generateTriviaQuestion(
         difficulty: TriviaDifficulty,
         answeredCount: Int,
-        excludedFingerprints: Set<String>
+        excludedFingerprints: Set<String>,
+        recentCategories: [TriviaCategory]
     ) async throws -> TriviaQuestion
 }
 
@@ -77,6 +78,7 @@ final class TriviaGameController: ObservableObject {
     private var questionDeadline: UInt64?
     private var answerLocked = false
     private var usedQuestionFingerprints = Set<String>()
+    private var recentCategories = [TriviaCategory]()
 
     init(
         provider: any TriviaQuestionProviding,
@@ -111,6 +113,7 @@ final class TriviaGameController: ObservableObject {
         cancelTasks()
         roundToken = UUID()
         usedQuestionFingerprints.removeAll()
+        recentCategories.removeAll()
         currentQuestion = nil
         selectedAnswerIndex = nil
         lastResult = nil
@@ -124,6 +127,27 @@ final class TriviaGameController: ObservableObject {
         answerLocked = false
         phase = .generating
         requestQuestion(for: roundToken)
+    }
+
+    /// Abandons every in-flight operation and returns to the clean home menu.
+    /// Rotating the token makes even a non-cooperative provider response stale.
+    func returnToHome() {
+        cancelTasks()
+        roundToken = UUID()
+        usedQuestionFingerprints.removeAll()
+        recentCategories.removeAll()
+        currentQuestion = nil
+        selectedAnswerIndex = nil
+        lastResult = nil
+        gameOverReason = nil
+        errorMessage = nil
+        score = 0
+        streak = 0
+        answeredCount = 0
+        secondsRemaining = 0
+        timeLimit = 0
+        answerLocked = false
+        phase = .idle
     }
 
     /// Retrying generation deliberately does not reset score, streak, or the
@@ -177,6 +201,7 @@ final class TriviaGameController: ObservableObject {
         let requestedDifficulty = difficulty
         let count = answeredCount
         let exclusions = usedQuestionFingerprints
+        let categoryHistory = Array(recentCategories.suffix(4))
 
         generationTask = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -184,7 +209,8 @@ final class TriviaGameController: ObservableObject {
                 let question = try await self.provider.generateTriviaQuestion(
                     difficulty: requestedDifficulty,
                     answeredCount: count,
-                    excludedFingerprints: exclusions
+                    excludedFingerprints: exclusions,
+                    recentCategories: categoryHistory
                 )
                 try Task.checkCancellation()
                 self.install(question, for: token, expectedDifficulty: requestedDifficulty)
@@ -214,6 +240,10 @@ final class TriviaGameController: ObservableObject {
         var generator = SystemRandomNumberGenerator()
         let presented = question.shuffled(using: &generator)
         usedQuestionFingerprints.insert(question.fingerprint)
+        recentCategories.append(question.category)
+        if recentCategories.count > 4 {
+            recentCategories.removeFirst()
+        }
         currentQuestion = presented
         selectedAnswerIndex = nil
         lastResult = nil

@@ -225,9 +225,12 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
     func generateTriviaQuestion(
         difficulty: TriviaDifficulty,
         answeredCount: Int,
-        excludedFingerprints: Set<String>
+        excludedFingerprints: Set<String>,
+        recentCategories: [TriviaCategory]
     ) async throws -> TriviaQuestion {
         let difficultyPrompt = difficulty.title.uppercased()
+        let suggestedCategory = TriviaCategory.allCases[answeredCount % TriviaCategory.allCases.count]
+        let recentCategoryNames = recentCategories.map(\.rawValue).joined(separator: ", ")
         let excluded = excludedFingerprints.isEmpty
             ? "none"
             : excludedFingerprints.prefix(12).joined(separator: " | ")
@@ -235,26 +238,37 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
 
         for attempt in 0..<3 {
             let prompt = """
-            Generate exactly one LittleRip physics-and-mathematics trivia question.
+            Generate exactly one LittleRip world-understanding trivia question.
             Requested tier: \(difficulty.rawValue) (\(difficultyPrompt)). Questions answered in this run: \(answeredCount).
+            Suggested category for a deliberate mix: \(suggestedCategory.rawValue).
+            Recent categories to avoid repeating without a strong connection: \(recentCategoryNames.isEmpty ? "none" : recentCategoryNames)
             Never repeat any prior question fingerprint listed here: \(excluded)
-            This is a progressive run. For warmup, make the idea genuinely simple
-            enough to answer in seconds (small arithmetic, a basic unit, a direct
-            observation, or the simplest form of a fundamental equation). Increase
-            difficulty only as the answered count and tier increase.
-            Favor grounded first principles: equations, energy, probability,
-            geometry, information, intelligence, physical laws, and their profound
-            implications. Thematic references may include Einstein, Ilya Sutskever,
-            Schopenhauer, Elon Musk, Sam Altman, Freemasonry geometry/history, or
-            Peter Thiel only as intellectual context—not celebrity trivia,
-            impersonation, conspiracy, or personality claims.
-            Include some "derive the equation" questions, but make those ask the
-            player to select the correct derivation step or equation; never ask for
-            typed input. Avoid claims that require current events or an authority's
-            opinion. Do not promise that an AI-generated claim is certainly true.
+            The central theme is: to be good at this game, understand what is
+            really going on in the world. Rotate intentionally across human nature
+            and psychology, history and civilizations, cultural/natural geography,
+            economics and incentives, power and institutions, technology/AI and
+            intelligence, science/math and energy, epistemology/philosophy, and
+            conditional possible futures. Connect domains through mechanisms and
+            first principles instead of making cheap trivia or repeating physics.
+            For warmup, make the idea genuinely simple enough to answer in seconds
+            (a clear observation, everyday incentive, basic map/history fact, or
+            simplest equation). Increase depth only as the answered count and tier
+            increase.
+            The inspiration range may include Einstein, Ilya Sutskever, Schopenhauer,
+            Elon Musk, Sam Altman, Freemasonry, Peter Thiel, Freud, Yuval Noah
+            Harari, or Graham Hancock only as intellectual context. Do not make
+            celebrity biographies, impersonation, endorsements, conspiracy claims,
+            or claims about what any person believes.
+            Established facts must have exactly one defensible answer. If an idea
+            is contested, attribute it as a theory and make the distinction clear.
+            Future questions must test conditional causal reasoning and mechanisms,
+            not certain predictions or current facts requiring live news.
+            Include some "derive the equation" questions, but ask the player to
+            select the correct derivation step or equation; never request typed input.
+            Do not promise that an AI-generated explanation is certainly true.
 
             Return ONLY this JSON object, with no Markdown or prose before/after it:
-            {"id":"stable-short-id","question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"brief reason","implication":"one grounded implication","difficulty":"\(difficulty.rawValue)"}
+            {"id":"stable-short-id","question":"...","choices":["...","...","...","..."],"correctIndex":0,"explanation":"brief reason","implication":"one grounded implication","difficulty":"\(difficulty.rawValue)","category":"\(suggestedCategory.rawValue)"}
             The choices must be exactly four, mutually distinct, plausible, and
             concise. correctIndex is zero-based. explanation and implication are
             brief and readable. Use plain Unicode math, not LaTeX.
@@ -353,11 +367,11 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
             """
         case .trivia:
             systemPrompt = """
-            You are GPT-5.6 Luna generating one self-contained LittleRip physics
-            and mathematics game question. Follow the exact JSON contract in the
-            user prompt. Never answer with prose, Markdown, a code fence, or a
-            second question. Keep facts grounded in standard mathematics and
-            physics; an AI-generated explanation is educational context, not a
+            You are generating one self-contained LittleRip world-understanding
+            game question. Follow the exact JSON contract in the user prompt.
+            Never answer with prose, Markdown, a code fence, or a second question.
+            Keep established facts defensible and explanations appropriately
+            qualified; an AI-generated explanation is educational context, not a
             guarantee of factual correctness.
             """
         }
