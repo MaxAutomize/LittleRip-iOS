@@ -74,25 +74,27 @@ struct TriviaCoreTests {
 
     private static func testPromptContract() {
         let voice = TriviaQuestionPrompt.system
-        precondition(voice.contains("There is no fixed topic list"))
-        precondition(voice.contains("no local memory"))
-        precondition(voice.contains("There is no increasing difficulty"))
+        precondition(voice.components(separatedBy: "\n").count <= 20)
+        precondition(voice.utf8.count < 2_000)
         precondition(voice.contains("The Birth of Tragedy"))
-        precondition(voice.contains("numbers and natural structure"))
+        precondition(voice.contains("Generate one fresh"))
+        for phrase in ["do not", "never", "avoid", "be careful", "IQ test"] {
+            precondition(!voice.lowercased().contains(phrase.lowercased()))
+        }
         precondition(!voice.lowercased().contains("probability"))
         precondition(!voice.lowercased().contains("statistics"))
 
         let context = TriviaQuestionBlueprint()
         let prompt = TriviaQuestionPrompt.make(blueprint: context, departurePoint: "tectonic glass")
-        precondition(prompt.contains("There is no round tier"))
-        precondition(prompt.contains("full universe of knowledge"))
-        precondition(prompt.contains("FRESH DEPARTURE POINT: tectonic glass"))
+        precondition(prompt.contains("Fresh inspiration: tectonic glass"))
+        precondition(prompt.contains("35 seconds"))
+        precondition(prompt.utf8.count < 800)
         precondition(!prompt.contains("RECENT MEMORY"))
         precondition(prompt.contains("\"concept\":\"short free-form subject label\""))
         precondition(prompt.utf8.count < 4_000)
 
         let retry = TriviaQuestionPrompt.make(blueprint: context, departurePoint: "neutrino", retryReason: "malformed JSON")
-        precondition(retry.contains("different idea"))
+        precondition(retry.contains("Correction: malformed JSON"))
     }
 
     @MainActor

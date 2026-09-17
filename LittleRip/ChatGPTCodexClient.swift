@@ -354,11 +354,17 @@ final class ChatGPTCodexClient: ObservableObject, TriviaQuestionProviding {
         if let requestedReasoningEffort {
             reasoningEffort = requestedReasoningEffort
         }
+        let instructions: String
+        if case .trivia = mode {
+            instructions = systemPrompt
+        } else {
+            instructions = systemPrompt + "\nUse plain text and never wrap text in double asterisks."
+        }
         let body: [String: Any] = [
             "model": "gpt-5.6-luna",
             "store": false,
             "stream": true,
-            "instructions": systemPrompt + "\nUse plain text and never wrap text in double asterisks.",
+            "instructions": instructions,
             "input": [["role": "user", "content": content]],
             "text": ["verbosity": "low"],
             "include": ["reasoning.encrypted_content"],
