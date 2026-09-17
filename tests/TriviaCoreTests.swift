@@ -133,6 +133,13 @@ struct TriviaCoreTests {
     }
 
     private static func testPromptContract() {
+        let voice = TriviaQuestionPrompt.system
+        precondition(voice.contains("Editorial touchstones, not impersonations"))
+        precondition(voice.contains("not a quota or a round schedule"))
+        precondition(voice.contains("without claiming to measure IQ"))
+        precondition(voice.contains("Check the arithmetic"))
+        precondition(voice.contains("Attribute a theory"))
+        precondition(voice.utf8.count < 7_000)
         var review: [String] = []
         for count in 0..<20 {
             let plan = TriviaQuestionBlueprint(
@@ -157,6 +164,19 @@ struct TriviaCoreTests {
         """
         let q = try! TriviaQuestionParser.parse(json, expectedDifficulty: .warmup)
         precondition(q.category == "Light and spacetime")
+        // Numerical and equation choices stay valid, short and correctly mapped after shuffle.
+        let mathJSON = """
+        {"question":"A cube's edge doubles. Its volume grows by what factor?","choices":["2×","4×","8×","16×"],"correctIndex":2,"explanation":"Volume scales with the cube of length: 2³ = 8.","difficulty":"warmup","category":"Scale"}
+        """
+        let math = try! TriviaQuestionParser.parse(mathJSON, expectedDifficulty: .warmup)
+        var rng = FixedRNG()
+        precondition(math.shuffled(using: &rng).correctAnswer == "8×")
+        let relationJSON = mathJSON
+            .replacingOccurrences(of: "A cube's edge doubles. Its volume grows by what factor?", with: "A cube's edge grows by a factor n. Its volume grows by what factor?")
+            .replacingOccurrences(of: "Volume scales with the cube of length: 2³ = 8.", with: "Volume scales with the cube of length: V = a³.")
+            .replacingOccurrences(of: "[\"2×\",\"4×\",\"8×\",\"16×\"]", with: "[\"n\",\"n²\",\"n³\",\"n⁴\"]")
+        let relation = try! TriviaQuestionParser.parse(relationJSON, expectedDifficulty: .warmup)
+        precondition(relation.correctAnswer == "n³") // parser test only, not a generated game question
         let longChoice = json.replacingOccurrences(of: "Spacetime curvature", with: "One two three four five six seven eight")
         do {
             _ = try TriviaQuestionParser.parse(longChoice, expectedDifficulty: .warmup)
